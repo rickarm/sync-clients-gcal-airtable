@@ -1,0 +1,28 @@
+# Secrets & credentials — never commit these
+.env
+credentials.json
+token.json
+
+# Python virtual environment
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# Archives
+*.zip
+
+# macOS
+.DS_Store
+
+# Claude workspace files
+.claude/
+
+# Editor
+.vscode/
+.idea/
