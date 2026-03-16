@@ -40,9 +40,12 @@ Optional env vars:
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 import sys
 from datetime import datetime, timedelta, timezone
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
@@ -76,6 +79,37 @@ FIELD_MAP: Dict[str, Dict[str, str]] = {
         "client_link": "Company",
     },
 }
+
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+
+def setup_logging(verbose: bool = False) -> logging.Logger:
+    """Configure file + console logging. File always gets DEBUG; console gets INFO (or DEBUG if verbose)."""
+    log_dir = Path(__file__).parent / "logs"
+    log_dir.mkdir(exist_ok=True)
+    log_path = log_dir / "session_sync.log"
+
+    logger = logging.getLogger("session_sync")
+    logger.setLevel(logging.DEBUG)
+
+    # File handler — rotating, 5 MB × 5 backups, always DEBUG
+    fh = RotatingFileHandler(log_path, maxBytes=5_000_000, backupCount=5)
+    fh.setLevel(logging.DEBUG)
+    fh.setFormatter(logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    ))
+
+    # Console handler — INFO by default, DEBUG if --verbose
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG if verbose else logging.INFO)
+    ch.setFormatter(logging.Formatter("%(message)s"))
+
+    logger.addHandler(fh)
+    logger.addHandler(ch)
+    return logger
 
 
 # ---------------------------------------------------------------------------
@@ -353,11 +387,19 @@ def main() -> None:
         help="Print details for sessions that would be / were created.",
     )
 
+    ap.add_argument(
+        "--verbose", "-v",
+        action="store_true",
+        help="Show DEBUG-level output on console (always written to log file).",
+    )
+
     mode = ap.add_mutually_exclusive_group(required=True)
     mode.add_argument("--dry-run", action="store_true")
     mode.add_argument("--apply", action="store_true")
 
     args = ap.parse_args()
+
+    logger = setup_logging(args.verbose)
 
     preflight_required_env()
 
@@ -381,9 +423,11 @@ def main() -> None:
     time_min = start_utc.isoformat().replace("+00:00", "Z")
     time_max = now_utc.isoformat().replace("+00:00", "Z")
 
-    print(f"\nFetching calendar events ({args.weeks} weeks)...")
+    mode_label = "APPLY" if args.apply else "DRY RUN"
+    logger.info(f"=== Sync started | mode={mode_label} | weeks={args.weeks} | calendar={args.calendar_id} ===")
+    logger.info(f"Fetching calendar events ({args.weeks} weeks)...")
     events = list_calendar_events(service, args.calendar_id, time_min, time_max)
-    print(f"Found {len(events)} events.")
+    logger.info(f"Found {len(events)} events.")
 
     # In-memory caches
     existing_session_cache: Dict[str, Dict[str, Any]] = {}
@@ -423,14 +467,17 @@ def main() -> None:
 
     for ev in events:
         if ev.get("status") == "cancelled":
+            logger.debug(f"Skip cancelled: \"{ev.get('summary', '(no title)')}\"")
             continue
 
         start_iso = event_start_utc_iso(ev)
         if not start_iso:
+            logger.debug(f"Skip all-day: \"{ev.get('summary', '(no title)')}\"")
             continue  # all-day
 
         ceid = compute_calendar_event_id(ev)
         if not ceid:
+            logger.debug(f"Skip (no ceid): \"{ev.get('summary', '(no title)')}\"")
             continue
 
         summary = ev.get("summary", "(no title)")
@@ -438,6 +485,7 @@ def main() -> None:
 
         if not attendees and not args.include_no_attendees:
             n_skipped += 1
+            logger.debug(f"Skip no-attendees: \"{summary}\" ({start_iso})")
             continue
 
         existing = get_existing_session(ceid)
@@ -467,10 +515,12 @@ def main() -> None:
 
             if patch:
                 n_patched += 1
+                logger.debug(f"Patch \"{summary}\" ({start_iso}) | fields={list(patch.keys())}")
                 if args.apply:
                     to_patch.append({"id": existing["id"], "fields": patch})
             else:
                 n_already_present += 1
+                logger.debug(f"Complete \"{summary}\" ({start_iso}) | no changes")
             continue
 
         # ------------------------------------------------------------------
@@ -484,6 +534,7 @@ def main() -> None:
 
         if not matched_client_id:
             n_no_match += 1
+            logger.warning(f"No unique match: \"{summary}\" ({start_iso}) | attendees={', '.join(attendees)}")
             if args.report_no_match:
                 no_match_details.append((start_iso, summary, attendees))
             continue
@@ -497,6 +548,7 @@ def main() -> None:
             create_fields[f_client] = [matched_client_id]
 
         n_created += 1
+        logger.info(f"{'Create' if args.apply else 'Would create'}: \"{summary}\" ({start_iso}) | client={matched_client_id} | email={matched_email}")
         if args.apply:
             to_create.append({"fields": create_fields})
 
@@ -513,45 +565,45 @@ def main() -> None:
 
     # Execute writes in batches of 10 (Airtable API limit)
     if args.apply:
+        logger.info(f"Writing to Airtable: {len(to_create)} creates, {len(to_patch)} patches...")
         for i in range(0, len(to_create), 10):
             airtable_create_records(pat, base_id, sessions_table, to_create[i:i + 10])
         for i in range(0, len(to_patch), 10):
             airtable_patch_records(pat, base_id, sessions_table, to_patch[i:i + 10])
 
     # Summary
-    mode_label = "DRY RUN" if args.dry_run else "APPLIED"
-    print(f"\n--- Sync Summary [{mode_label}] ---")
-    print(f"Lookback:              {args.weeks} weeks")
-    print(f"Calendar:              {args.calendar_id}")
-    print(f"Events fetched:        {len(events)}")
-    print(f"Sessions created:      {n_created}")
-    print(f"Sessions patched:      {n_patched}  (blanks filled)")
-    print(f"Already complete:      {n_already_present}  (no changes)")
-    print(f"Skipped (no attendees):{n_skipped}")
-    print(f"No unique match:       {n_no_match}  (not created)")
-    print("-----------------------------------\n")
+    summary_mode = "DRY RUN" if args.dry_run else "APPLIED"
+    logger.info(f"\n--- Sync Summary [{summary_mode}] ---")
+    logger.info(f"Lookback:              {args.weeks} weeks")
+    logger.info(f"Calendar:              {args.calendar_id}")
+    logger.info(f"Events fetched:        {len(events)}")
+    logger.info(f"Sessions created:      {n_created}")
+    logger.info(f"Sessions patched:      {n_patched}  (blanks filled)")
+    logger.info(f"Already complete:      {n_already_present}  (no changes)")
+    logger.info(f"Skipped (no attendees):{n_skipped}")
+    logger.info(f"No unique match:       {n_no_match}  (not created)")
+    logger.info("-----------------------------------")
+    logger.info("=== Sync complete ===")
 
     if args.report_create and create_details:
-        print("--- Sessions created / would create ---")
+        logger.info("--- Sessions created / would create ---")
         for row in create_details[:200]:
-            print(f"  {row['start_utc']} | {row['summary']}")
-            print(f"    ceid:    {row['ceid']}")
-            print(f"    email:   {row['matched_email']}")
-            print(f"    contact: {row['matched_contact_id']}")
-            print(f"    client:  {row['matched_client_id']}")
+            logger.info(f"  {row['start_utc']} | {row['summary']}")
+            logger.info(f"    ceid:    {row['ceid']}")
+            logger.info(f"    email:   {row['matched_email']}")
+            logger.info(f"    contact: {row['matched_contact_id']}")
+            logger.info(f"    client:  {row['matched_client_id']}")
         if len(create_details) > 200:
-            print(f"  ... ({len(create_details) - 200} more)")
-        print()
+            logger.info(f"  ... ({len(create_details) - 200} more)")
 
     if args.report_no_match and no_match_details:
-        print("--- Events with no unique client match ---")
+        logger.info("--- Events with no unique client match ---")
         for start_iso, title, emails in no_match_details[:200]:
-            print(f"  {start_iso} | {title}")
-            print(f"    attendees: {', '.join(emails)}")
+            logger.info(f"  {start_iso} | {title}")
+            logger.info(f"    attendees: {', '.join(emails)}")
         if len(no_match_details) > 200:
-            print(f"  ... ({len(no_match_details) - 200} more)")
-        print()
-        print("Tip: set SELF_EMAILS in .env to exclude your own addresses from matching.")
+            logger.info(f"  ... ({len(no_match_details) - 200} more)")
+        logger.info("Tip: set SELF_EMAILS in .env to exclude your own addresses from matching.")
 
 
 if __name__ == "__main__":

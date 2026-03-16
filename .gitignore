@@ -20,6 +20,9 @@ build/
 # macOS
 .DS_Store
 
+# Logs
+logs/
+
 # Claude workspace files
 .claude/
 
