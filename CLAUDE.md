@@ -12,6 +12,16 @@ Airtable is the system of record. This tool is the system of transformation.
 - **Deterministic creation** — new Sessions are only created when there is exactly one unambiguous client match via Contacts
 - **No silent overwrites** — existing records are only patched where fields are blank
 
+## Development Workflow
+
+See `KB-Development-Workflow.md` in the Knowledge Base for the full workflow. Summary:
+
+1. Bugs and features are tracked as **GitHub Issues**
+2. Claude works on a **feature branch** (worktrees for isolation in local sessions)
+3. Claude pushes the branch and opens a **Pull Request**
+4. Rick reviews and merges the PR
+5. Adding the `claude` label to an issue triggers Claude via GitHub Actions
+
 ## Project Structure
 
 ```
