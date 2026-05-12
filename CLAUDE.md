@@ -26,6 +26,8 @@ See `KB-Development-Workflow.md` in the Knowledge Base for the full workflow. Su
 
 ```
 session_sync.py          # Main script (primary entry point)
+add_client.py            # New client onboarding: creates Company + Contact in Airtable, adds to known_clients.json
+known_clients.json       # Email → company_record_id map; auto-creates Contact on first sync if missing from Airtable
 sync_last_4_weeks.py     # Original script (kept for reference)
 credentials.json         # Google OAuth Desktop Client credentials
 token.json               # Auto-generated on first auth (do not commit)
@@ -72,6 +74,10 @@ APPLY=1 make apply
 
 # Backfill longer window
 python session_sync.py --apply --weeks 12 --calendar-id primary
+
+# Onboard a new client (creates Company if needed, Contact, updates known_clients.json)
+python add_client.py --name "Alice Smith" --email alice@co.com --company "Acme Corp"
+python add_client.py --name "Alice Smith" --email alice@co.com --company "Acme Corp" --dry-run
 ```
 
 ## Airtable Schema
@@ -89,7 +95,16 @@ python session_sync.py --apply --weeks 12 --calendar-id primary
 | Field | Purpose |
 |---|---|
 | `Email` | Exact match against attendee emails |
-| `Client` | Linked record → Clients |
+| `Company` | Linked record → Company (note: field is called "Company" not "Client") |
+
+### Company table
+| Field | Purpose |
+|---|---|
+| `Client` | Primary field — company/client name (note: primary field is called "Client" not "Name") |
+| `Rate (per session)` | Billing rate in USD |
+| `Status-Company` | "Active" for current clients |
+
+**Known issue:** Vic Mileham, Bob Moore, and Jerome de Lafargue each have duplicate Contact records (same email, same Company link). Sync works (first match wins) — don't create more.
 
 ## Matching Logic
 
