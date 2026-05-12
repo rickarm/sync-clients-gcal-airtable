@@ -1,0 +1,7 @@
+[
+  {"email": "bob@crossbeam.com",        "name": "Bob Moore",           "company_record_id": "recutrrid4pEbf4un"},
+  {"email": "jerome@zeroheight.com",    "name": "Jerome de Lafargue",  "company_record_id": "recpCUwkcoA06RqWK"},
+  {"email": "tristan@dbtlabs.com",      "name": "Tristan Handy",       "company_record_id": "recYM2gsgyGgdgQfp"},
+  {"email": "vic.mileham@dbtlabs.com",  "name": "Vic Mileham",         "company_record_id": "recYM2gsgyGgdgQfp"},
+  {"email": "brett@clavata.ai",         "name": "Brett Levenson",      "company_record_id": "recfVUE7v358s68dY"}
+]

@@ -10,6 +10,8 @@ Principles:
 - No silent overwrites: existing records are only patched where fields are blank
 - Deterministic creation: Sessions created only with exactly one unambiguous client match
 - No guessing: attendee email → Contacts.Email (exact match) → linked Client
+- Auto-onboard: if an attendee email is in known_clients.json but not yet in Airtable
+  Contacts, the Contact record is created automatically before the session is filed.
 
 Usage:
   # Dry run (safe, no writes)
@@ -35,11 +37,13 @@ Optional env vars:
   AIRTABLE_SESSIONS_TABLE   (default: "Sessions")
   AIRTABLE_CONTACTS_TABLE   (default: "Contacts")
   SELF_EMAILS               (comma-separated, excluded from attendee matching)
+  KNOWN_CLIENTS_FILE        (default: "known_clients.json")
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import os
 import sys
@@ -76,9 +80,35 @@ FIELD_MAP: Dict[str, Dict[str, str]] = {
     },
     "contacts": {
         "email": "Email",
+        "name": "Name",
         "client_link": "Company",
+        "status": "Status Client",
     },
 }
+
+
+# ---------------------------------------------------------------------------
+# Known clients
+# ---------------------------------------------------------------------------
+
+def load_known_clients(path: str) -> Dict[str, Dict[str, Any]]:
+    """
+    Load known_clients.json, keyed by lowercase email.
+
+    File format (array of objects):
+      [
+        {"email": "alice@co.com", "name": "Alice Smith", "company_record_id": "recXXX"},
+        ...
+      ]
+
+    Returns {} if the file doesn't exist or is empty.
+    """
+    p = Path(path)
+    if not p.exists():
+        return {}
+    with p.open() as f:
+        entries = json.load(f)
+    return {e["email"].strip().lower(): e for e in entries if e.get("email")}
 
 
 # ---------------------------------------------------------------------------
@@ -94,7 +124,7 @@ def setup_logging(verbose: bool = False) -> logging.Logger:
     logger = logging.getLogger("session_sync")
     logger.setLevel(logging.DEBUG)
 
-    # File handler — rotating, 5 MB × 5 backups, always DEBUG
+    # File handler — rotating, 5 MB x 5 backups, always DEBUG
     fh = RotatingFileHandler(log_path, maxBytes=5_000_000, backupCount=5)
     fh.setLevel(logging.DEBUG)
     fh.setFormatter(logging.Formatter(
@@ -297,6 +327,58 @@ def airtable_patch_records(
     return resp.json()
 
 
+def airtable_create_contact(
+    email: str,
+    name: str,
+    company_record_id: str,
+    pat: str,
+    base_id: str,
+    contacts_table: str,
+    *,
+    dry_run: bool = False,
+    logger: Optional[logging.Logger] = None,
+) -> Optional[Dict[str, Any]]:
+    """
+    Create a new Contact record in Airtable for a known client.
+    In dry-run mode, logs the intent and returns a synthetic record so the
+    rest of the sync can proceed as if the contact exists.
+    """
+    f_email = FIELD_MAP["contacts"]["email"]
+    f_name = FIELD_MAP["contacts"]["name"]
+    f_company = FIELD_MAP["contacts"]["client_link"]
+    f_status = FIELD_MAP["contacts"]["status"]
+
+    fields = {
+        f_email: email,
+        f_name: name,
+        f_company: [company_record_id],
+        f_status: "Active-coaching",
+    }
+
+    if dry_run:
+        if logger:
+            logger.info(f"[DRY RUN] Would auto-create Contact: {name} <{email}>")
+        # Return a synthetic record so matching continues normally
+        return {
+            "id": f"dry-run-contact-{email}",
+            "fields": {f_email: email, f_name: name, f_company: [company_record_id]},
+        }
+
+    url = f"https://api.airtable.com/v0/{base_id}/{requests.utils.quote(contacts_table)}"
+    resp = requests.post(
+        url, headers=airtable_headers(pat), json={"fields": fields}, timeout=30
+    )
+    if resp.status_code >= 300:
+        if logger:
+            logger.error(f"Failed to auto-create Contact for {email}: {resp.text}")
+        return None
+
+    record = resp.json()
+    if logger:
+        logger.info(f"Auto-created Contact: {name} <{email}> → {record['id']}")
+    return record
+
+
 # ---------------------------------------------------------------------------
 # Matching
 # ---------------------------------------------------------------------------
@@ -307,6 +389,10 @@ def find_contact_by_email(
     pat: str,
     base_id: str,
     contacts_table: str,
+    *,
+    known_clients: Optional[Dict[str, Dict[str, Any]]] = None,
+    dry_run: bool = False,
+    logger: Optional[logging.Logger] = None,
 ) -> Optional[Dict[str, Any]]:
     if email in cache:
         return cache[email]
@@ -324,6 +410,22 @@ def find_contact_by_email(
         page_size=10,
     )
     contact = records[0] if records else None
+
+    # Auto-create from known_clients.json if not found in Airtable
+    if contact is None and known_clients:
+        known = known_clients.get(email.lower())
+        if known:
+            contact = airtable_create_contact(
+                email=email,
+                name=known["name"],
+                company_record_id=known["company_record_id"],
+                pat=pat,
+                base_id=base_id,
+                contacts_table=contacts_table,
+                dry_run=dry_run,
+                logger=logger,
+            )
+
     cache[email] = contact
     return contact
 
@@ -334,6 +436,10 @@ def resolve_unique_client(
     base_id: str,
     contacts_table: str,
     contact_cache: Dict[str, Optional[Dict[str, Any]]],
+    *,
+    known_clients: Optional[Dict[str, Dict[str, Any]]] = None,
+    dry_run: bool = False,
+    logger: Optional[logging.Logger] = None,
 ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
     """
     Returns (matched_email, contact_record_id, client_record_id).
@@ -343,7 +449,16 @@ def resolve_unique_client(
     matches: List[Tuple[str, str, str]] = []
 
     for email in attendee_emails:
-        contact = find_contact_by_email(email, contact_cache, pat, base_id, contacts_table)
+        contact = find_contact_by_email(
+            email,
+            contact_cache,
+            pat,
+            base_id,
+            contacts_table,
+            known_clients=known_clients,
+            dry_run=dry_run,
+            logger=logger,
+        )
         if not contact:
             continue
         client_link = contact.get("fields", {}).get(f_client)
@@ -408,6 +523,13 @@ def main() -> None:
     sessions_table = os.getenv("AIRTABLE_SESSIONS_TABLE", "Sessions").strip()
     contacts_table = os.getenv("AIRTABLE_CONTACTS_TABLE", "Contacts").strip()
     self_emails = parse_self_emails(os.getenv("SELF_EMAILS", ""))
+    known_clients_file = os.getenv("KNOWN_CLIENTS_FILE", "known_clients.json")
+
+    known_clients = load_known_clients(known_clients_file)
+    if known_clients:
+        logger.info(f"Loaded {len(known_clients)} known client(s) from {known_clients_file}")
+
+    dry_run = args.dry_run
 
     # Field name aliases
     f_ceid = FIELD_MAP["sessions"]["calendar_event_id"]
@@ -443,6 +565,7 @@ def main() -> None:
     n_already_present = 0
     n_skipped = 0
     n_no_match = 0
+    n_contacts_created = 0
 
     # Report details
     create_details: List[Dict] = []
@@ -503,7 +626,8 @@ def main() -> None:
             matched_email = matched_contact_id = matched_client_id = None
             if attendees:
                 matched_email, matched_contact_id, matched_client_id = resolve_unique_client(
-                    attendees, pat, base_id, contacts_table, contact_cache
+                    attendees, pat, base_id, contacts_table, contact_cache,
+                    known_clients=known_clients, dry_run=dry_run, logger=logger,
                 )
 
             if matched_email and not fields.get(f_email):
@@ -529,7 +653,8 @@ def main() -> None:
         matched_email, matched_contact_id, matched_client_id = None, None, None
         if attendees:
             matched_email, matched_contact_id, matched_client_id = resolve_unique_client(
-                attendees, pat, base_id, contacts_table, contact_cache
+                attendees, pat, base_id, contacts_table, contact_cache,
+                known_clients=known_clients, dry_run=dry_run, logger=logger,
             )
 
         if not matched_client_id:
