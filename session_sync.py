@@ -46,7 +46,6 @@ import argparse
 import json
 import logging
 import os
-import sys
 from datetime import datetime, timedelta, timezone
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -565,7 +564,6 @@ def main() -> None:
     n_already_present = 0
     n_skipped = 0
     n_no_match = 0
-    n_contacts_created = 0
 
     # Report details
     create_details: List[Dict] = []
