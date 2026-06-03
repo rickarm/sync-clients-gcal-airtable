@@ -29,3 +29,6 @@ logs/
 # Editor
 .vscode/
 .idea/
+
+# Client data — contains PII (email → company map), never commit
+known_clients.json
