@@ -51,6 +51,7 @@ Optional:
 ```
 AIRTABLE_SESSIONS_TABLE=Sessions       # default
 AIRTABLE_CONTACTS_TABLE=Contacts       # default
+AIRTABLE_CLIENTS_TABLE=Company         # default (the Company/Clients table)
 SELF_EMAILS=rick@example.com,...  # excluded from attendee matching
 ```
 
@@ -101,6 +102,7 @@ python add_client.py --name "Alice Smith" --email alice@co.com --company "Acme C
 | Field | Purpose |
 |---|---|
 | `Client` | Primary field — company/client name (note: primary field is called "Client" not "Name") |
+| `Billing Model` | "Prepaid Sessions" / "Retainer". **Presence = this is a real coaching client.** Used to exclude non-client companies (referral/BD contacts) from session matching. |
 | `Rate (per session)` | Billing rate in USD |
 | `Status-Company` | "Active" for current clients |
 
@@ -110,9 +112,10 @@ python add_client.py --name "Alice Smith" --email alice@co.com --company "Acme C
 
 1. Extract attendee emails from calendar event (excluding SELF_EMAILS)
 2. For each email, look up exact match in Contacts.Email
-3. Contact must link to exactly one Client
-4. If exactly one unique Client matches across all attendees → create/update
-5. If zero or multiple Clients → skip (no create, log in no-match report)
+3. Contact must link to exactly one Company
+4. That Company must be a real coaching client — i.e. it has a `Billing Model` set. Companies without one (referral sources, BD/relationship contacts filed under a non-client company) are skipped, even though the Contact→Company link is unique. This prevents phantom sessions (e.g. a coffee with a VC who referred a client).
+5. If exactly one unique billable Client matches across all attendees → create/update
+6. If zero or multiple Clients → skip (no create, log in no-match report)
 
 ## What This Tool Does NOT Do
 

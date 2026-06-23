@@ -36,6 +36,7 @@ Required env vars (in .env):
 Optional env vars:
   AIRTABLE_SESSIONS_TABLE   (default: "Sessions")
   AIRTABLE_CONTACTS_TABLE   (default: "Contacts")
+  AIRTABLE_CLIENTS_TABLE    (default: "Company")
   SELF_EMAILS               (comma-separated, excluded from attendee matching)
   KNOWN_CLIENTS_FILE        (default: "known_clients.json")
 """
@@ -82,6 +83,9 @@ FIELD_MAP: Dict[str, Dict[str, str]] = {
         "name": "Name",
         "client_link": "Company",
         "status": "Status Client",
+    },
+    "clients": {
+        "billing_model": "Billing Model",
     },
 }
 
@@ -429,12 +433,51 @@ def find_contact_by_email(
     return contact
 
 
+def company_is_billable_client(
+    client_id: str,
+    pat: str,
+    base_id: str,
+    clients_table: str,
+    client_cache: Dict[str, bool],
+    *,
+    logger: Optional[logging.Logger] = None,
+) -> bool:
+    """
+    True only if the linked Company is an actual coaching client.
+
+    A real client always has a `Billing Model` set at onboarding (e.g.
+    "Prepaid Sessions" or "Retainer") — this holds for new clients, retainer
+    clients with zero sessions purchased, and former clients alike. Non-client
+    records (referral sources, BD/relationship contacts filed under a company)
+    have no `Billing Model`, so they are excluded. This prevents creating
+    phantom sessions for, e.g., a coffee with a VC who referred a client.
+    """
+    if client_id in client_cache:
+        return client_cache[client_id]
+
+    f_billing = FIELD_MAP["clients"]["billing_model"]
+    records = airtable_list_records(
+        pat=pat,
+        base_id=base_id,
+        table=clients_table,
+        filter_by_formula=f'RECORD_ID()="{client_id}"',
+        fields=[f_billing],
+        page_size=1,
+    )
+    billing = records[0].get("fields", {}).get(f_billing) if records else None
+    is_client = bool(billing) and (not isinstance(billing, str) or billing.strip() != "")
+    client_cache[client_id] = is_client
+    return is_client
+
+
 def resolve_unique_client(
     attendee_emails: List[str],
     pat: str,
     base_id: str,
     contacts_table: str,
+    clients_table: str,
     contact_cache: Dict[str, Optional[Dict[str, Any]]],
+    client_cache: Dict[str, bool],
     *,
     known_clients: Optional[Dict[str, Dict[str, Any]]] = None,
     dry_run: bool = False,
@@ -442,7 +485,7 @@ def resolve_unique_client(
 ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
     """
     Returns (matched_email, contact_record_id, client_record_id).
-    Only returns a result when exactly one unique client matches.
+    Only returns a result when exactly one unique *billable* client matches.
     """
     f_client = FIELD_MAP["contacts"]["client_link"]
     matches: List[Tuple[str, str, str]] = []
@@ -461,8 +504,21 @@ def resolve_unique_client(
         if not contact:
             continue
         client_link = contact.get("fields", {}).get(f_client)
-        if isinstance(client_link, list) and len(client_link) == 1:
-            matches.append((email, contact["id"], client_link[0]))
+        if not (isinstance(client_link, list) and len(client_link) == 1):
+            continue
+        client_id = client_link[0]
+        # Skip companies that aren't actual coaching clients (no Billing Model) —
+        # e.g. referral sources / BD contacts filed under a non-client company.
+        if not company_is_billable_client(
+            client_id, pat, base_id, clients_table, client_cache, logger=logger
+        ):
+            if logger:
+                logger.debug(
+                    f"Skip non-client company for {email}: "
+                    f"linked Company {client_id} has no Billing Model"
+                )
+            continue
+        matches.append((email, contact["id"], client_id))
 
     # Deduplicate by client ID — only succeed if exactly one unique client
     by_client: Dict[str, Tuple[str, str, str]] = {m[2]: m for m in matches}
@@ -521,6 +577,7 @@ def main() -> None:
     base_id = os.getenv("AIRTABLE_BASE_ID", "").strip()
     sessions_table = os.getenv("AIRTABLE_SESSIONS_TABLE", "Sessions").strip()
     contacts_table = os.getenv("AIRTABLE_CONTACTS_TABLE", "Contacts").strip()
+    clients_table = os.getenv("AIRTABLE_CLIENTS_TABLE", "Company").strip()
     self_emails = parse_self_emails(os.getenv("SELF_EMAILS", ""))
     known_clients_file = os.getenv("KNOWN_CLIENTS_FILE", "known_clients.json")
 
@@ -553,6 +610,7 @@ def main() -> None:
     # In-memory caches
     existing_session_cache: Dict[str, Dict[str, Any]] = {}
     contact_cache: Dict[str, Optional[Dict[str, Any]]] = {}
+    client_cache: Dict[str, bool] = {}
 
     # Pending writes
     to_create: List[Dict[str, Any]] = []
@@ -624,7 +682,8 @@ def main() -> None:
             matched_email = matched_contact_id = matched_client_id = None
             if attendees:
                 matched_email, matched_contact_id, matched_client_id = resolve_unique_client(
-                    attendees, pat, base_id, contacts_table, contact_cache,
+                    attendees, pat, base_id, contacts_table, clients_table,
+                    contact_cache, client_cache,
                     known_clients=known_clients, dry_run=dry_run, logger=logger,
                 )
 
@@ -651,7 +710,8 @@ def main() -> None:
         matched_email, matched_contact_id, matched_client_id = None, None, None
         if attendees:
             matched_email, matched_contact_id, matched_client_id = resolve_unique_client(
-                attendees, pat, base_id, contacts_table, contact_cache,
+                attendees, pat, base_id, contacts_table, clients_table,
+                contact_cache, client_cache,
                 known_clients=known_clients, dry_run=dry_run, logger=logger,
             )
 
