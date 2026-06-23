@@ -22,6 +22,8 @@ See `KB-Development-Workflow.md` in the Knowledge Base for the full workflow. Su
 4. Rick reviews and merges the PR
 5. Adding the `claude` label to an issue triggers Claude via GitHub Actions
 
+**CI / merge gating:** `main` merge-gating is a GitHub **ruleset** ("CI-test"), NOT classic branch protection — `gh api repos/rickarm/sync-clients-gcal-airtable/branches/main/protection` returns 404. Inspect/edit via `gh api repos/rickarm/sync-clients-gcal-airtable/rulesets`. The required status-check `context` must equal the Actions **check-run name** (the job name `test`), not `ci / test` — a mismatch shows "Expected — Waiting for status to be reported" forever even though CI passed. Use the keyring-authed `gh` (repo+workflow scopes) for ruleset edits; the `GH_TOKEN` PAT in `~/.env` can't read/write protection.
+
 ## Project Structure
 
 ```
@@ -143,3 +145,6 @@ Delete `token.json` and rerun — it will re-prompt for Google auth.
 
 **Airtable 401/403:**
 Confirm PAT is valid and has access to the base.
+
+**Verifying changes to matching logic:**
+`make dryrun` shows already-synced events as "Already complete" and does NOT re-run client matching for them — so it won't catch a regression in matching on existing sessions. To verify matching changes, unit-test the function directly against live Airtable (e.g. call `company_is_billable_client` / `resolve_unique_client` with real record IDs) or test against a fresh, unsynced event.
