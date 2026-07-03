@@ -1,0 +1,122 @@
+start_utc,attendee,icaluid,calendar_event_id,summary
+2021-01-05T19:00:00Z,bob@crossbeam.com,kd9qlj9dumcckqccr4v1jucbls@google.com,kd9qlj9dumcckqccr4v1jucbls@google.com_20210105T190000Z,Rick Armbrust and Bob Moore
+2021-01-11T18:30:00Z,bob@crossbeam.com,0mi71ldnvevcvagiuil4i1p29a@google.com,0mi71ldnvevcvagiuil4i1p29a@google.com_20210111T183000Z,Bob <> Rick Hour Long Session
+2021-01-29T19:00:00Z,bob@crossbeam.com,0iasvkb8cltr0todn450m450s3@google.com,0iasvkb8cltr0todn450m450s3@google.com_20210129T190000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2021-02-12T19:00:00Z,bob@crossbeam.com,0iasvkb8cltr0todn450m450s3@google.com,0iasvkb8cltr0todn450m450s3@google.com_20210212T190000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2021-02-26T19:00:00Z,bob@crossbeam.com,0iasvkb8cltr0todn450m450s3@google.com,0iasvkb8cltr0todn450m450s3@google.com_20210226T190000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2021-03-15T18:00:00Z,bob@crossbeam.com,0iasvkb8cltr0todn450m450s3@google.com,0iasvkb8cltr0todn450m450s3@google.com_20210315T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2021-03-26T18:00:00Z,bob@crossbeam.com,0iasvkb8cltr0todn450m450s3@google.com,0iasvkb8cltr0todn450m450s3@google.com_20210326T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2021-04-09T18:00:00Z,bob@crossbeam.com,0iasvkb8cltr0todn450m450s3@google.com,0iasvkb8cltr0todn450m450s3@google.com_20210409T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2021-04-23T18:00:00Z,bob@crossbeam.com,0iasvkb8cltr0todn450m450s3@google.com,0iasvkb8cltr0todn450m450s3@google.com_20210423T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2021-05-07T18:00:00Z,bob@crossbeam.com,0iasvkb8cltr0todn450m450s3@google.com,0iasvkb8cltr0todn450m450s3@google.com_20210507T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2021-05-27T18:00:00Z,bob@crossbeam.com,0iasvkb8cltr0todn450m450s3@google.com,0iasvkb8cltr0todn450m450s3@google.com_20210527T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2021-07-09T18:00:00Z,bob@crossbeam.com,0iasvkb8cltr0todn450m450s3@google.com,0iasvkb8cltr0todn450m450s3@google.com_20210709T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2021-07-30T18:00:00Z,bob@crossbeam.com,0iasvkb8cltr0todn450m450s3@google.com,0iasvkb8cltr0todn450m450s3@google.com_20210730T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2021-08-31T16:30:00Z,bob@crossbeam.com,0iasvkb8cltr0todn450m450s3@google.com,0iasvkb8cltr0todn450m450s3@google.com_20210831T163000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2021-09-07T17:30:00Z,bob@crossbeam.com,0iasvkb8cltr0todn450m450s3@google.com,0iasvkb8cltr0todn450m450s3@google.com_20210907T173000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2021-11-19T19:00:00Z,bob@crossbeam.com,0iasvkb8cltr0todn450m450s3@google.com,0iasvkb8cltr0todn450m450s3@google.com_20211119T190000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2021-12-02T19:00:00Z,bob@crossbeam.com,0iasvkb8cltr0todn450m450s3@google.com,0iasvkb8cltr0todn450m450s3@google.com_20211202T190000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2021-12-16T21:30:00Z,bob@crossbeam.com,l82gdrqo59vd9a5pc41d9a89mq@google.com,l82gdrqo59vd9a5pc41d9a89mq@google.com_20211216T213000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2022-01-03T17:00:00Z,bob@crossbeam.com,2l7pogltti74j3p5kkjgmrgfeh@google.com,2l7pogltti74j3p5kkjgmrgfeh@google.com_20220103T170000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2022-01-18T18:30:00Z,bob@crossbeam.com,2l7pogltti74j3p5kkjgmrgfeh@google.com,2l7pogltti74j3p5kkjgmrgfeh@google.com_20220118T183000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2022-02-02T18:30:00Z,bob@crossbeam.com,2l7pogltti74j3p5kkjgmrgfeh@google.com,2l7pogltti74j3p5kkjgmrgfeh@google.com_20220202T183000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2022-02-09T17:00:00Z,lbarnett@crossbeam.com,0l3rhhrpopo4r9h8m70h8thcf4@google.com,0l3rhhrpopo4r9h8m70h8thcf4@google.com_20220209T170000Z,Latrice Barnett and Rick Armbrust
+2022-02-14T17:00:00Z,bob@crossbeam.com,2l7pogltti74j3p5kkjgmrgfeh@google.com,2l7pogltti74j3p5kkjgmrgfeh@google.com_20220214T170000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2022-02-28T17:00:00Z,bob@crossbeam.com,2l7pogltti74j3p5kkjgmrgfeh@google.com,2l7pogltti74j3p5kkjgmrgfeh@google.com_20220228T170000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2022-03-14T16:00:00Z,bob@crossbeam.com,2l7pogltti74j3p5kkjgmrgfeh@google.com,2l7pogltti74j3p5kkjgmrgfeh@google.com_20220314T160000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2022-03-28T16:00:00Z,bob@crossbeam.com,2l7pogltti74j3p5kkjgmrgfeh@google.com,2l7pogltti74j3p5kkjgmrgfeh@google.com_20220328T160000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2022-04-11T16:00:00Z,bob@crossbeam.com,2l7pogltti74j3p5kkjgmrgfeh@google.com,2l7pogltti74j3p5kkjgmrgfeh@google.com_20220411T160000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2022-04-25T16:00:00Z,bob@crossbeam.com,2l7pogltti74j3p5kkjgmrgfeh@google.com,2l7pogltti74j3p5kkjgmrgfeh@google.com_20220425T160000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2022-05-09T16:00:00Z,bob@crossbeam.com,2l7pogltti74j3p5kkjgmrgfeh@google.com,2l7pogltti74j3p5kkjgmrgfeh@google.com_20220509T160000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2022-05-09T18:15:00Z,lbarnett@crossbeam.com,04a85a03-8ffe-4b9b-a3ff-bc507081ae2e,04a85a03-8ffe-4b9b-a3ff-bc507081ae2e_20220509T181500Z,Latrice <> Rick
+2022-05-24T16:30:00Z,bob@crossbeam.com,2l7pogltti74j3p5kkjgmrgfeh@google.com,2l7pogltti74j3p5kkjgmrgfeh@google.com_20220524T163000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2022-06-07T16:30:00Z,bob@crossbeam.com,2l7pogltti74j3p5kkjgmrgfeh@google.com,2l7pogltti74j3p5kkjgmrgfeh@google.com_20220607T163000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2022-06-16T20:30:00Z,lbarnett@crossbeam.com,305k8diipluuj7mlfkgnji63tc@google.com,305k8diipluuj7mlfkgnji63tc@google.com_20220616T203000Z,Latrice <> Rick - monthly cadence
+2022-07-15T17:00:00Z,lbarnett@crossbeam.com,305k8diipluuj7mlfkgnji63tc@google.com,305k8diipluuj7mlfkgnji63tc@google.com_20220715T170000Z,Latrice <> Rick - monthly cadence
+2022-07-18T16:00:00Z,bob@crossbeam.com,2l7pogltti74j3p5kkjgmrgfeh@google.com,2l7pogltti74j3p5kkjgmrgfeh@google.com_20220718T160000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2022-07-28T20:30:00Z,bob@crossbeam.com,5nbgmj5raftq55c7e7pmq4n7gh@google.com,5nbgmj5raftq55c7e7pmq4n7gh@google.com_20220728T203000Z,Bob Calling Rick 206-228-4589
+2022-08-01T16:00:00Z,bob@crossbeam.com,2l7pogltti74j3p5kkjgmrgfeh@google.com,2l7pogltti74j3p5kkjgmrgfeh@google.com_20220801T160000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2022-08-15T16:00:00Z,bob@crossbeam.com,2l7pogltti74j3p5kkjgmrgfeh@google.com,2l7pogltti74j3p5kkjgmrgfeh@google.com_20220815T160000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2022-08-18T21:00:00Z,lbarnett@crossbeam.com,0vg0l343e2541qclltvu55cgi0@google.com,0vg0l343e2541qclltvu55cgi0@google.com_20220818T210000Z,Latrice <> Rick
+2022-09-01T21:00:00Z,lbarnett@crossbeam.com,6e0r8e54ou2pih01lfshhfs3fs@google.com,6e0r8e54ou2pih01lfshhfs3fs@google.com_20220901T210000Z,Latrice <> Rick monthly cadence
+2022-09-12T14:00:00Z,bob@crossbeam.com,2l7pogltti74j3p5kkjgmrgfeh@google.com,2l7pogltti74j3p5kkjgmrgfeh@google.com_20220912T140000Z,Bob Moore <> Rick Armbrust: Breakfast Meeting in Philadelphia
+2022-09-26T16:00:00Z,bob@crossbeam.com,2l7pogltti74j3p5kkjgmrgfeh@google.com,2l7pogltti74j3p5kkjgmrgfeh@google.com_20220926T160000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2022-10-06T22:00:00Z,lbarnett@crossbeam.com,6e0r8e54ou2pih01lfshhfs3fs@google.com,6e0r8e54ou2pih01lfshhfs3fs@google.com_20221006T220000Z,Latrice <> Rick monthly cadence
+2022-10-13T18:00:00Z,bob@crossbeam.com,0g4g808v9ging5shvgqn3lb6d0@google.com,0g4g808v9ging5shvgqn3lb6d0@google.com_20221013T180000Z,Bob <> Rick Coaching Session
+2022-10-21T22:00:00Z,lbarnett@crossbeam.com,mvl6r65d3mn90ggi4ctr2ukn5s@google.com,mvl6r65d3mn90ggi4ctr2ukn5s@google.com_20221021T220000Z,Latrice / Rick
+2022-10-24T16:00:00Z,bob@crossbeam.com,2l7pogltti74j3p5kkjgmrgfeh@google.com,2l7pogltti74j3p5kkjgmrgfeh@google.com_20221024T160000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2022-11-01T22:00:00Z,lbarnett@crossbeam.com,1lvousno0eep8opvolcqge153o@google.com,1lvousno0eep8opvolcqge153o@google.com_20221101T220000Z,Meeting (1hr) (Latrice Barnett)
+2022-11-03T21:00:00Z,lbarnett@crossbeam.com,6e0r8e54ou2pih01lfshhfs3fs@google.com,6e0r8e54ou2pih01lfshhfs3fs@google.com_20221103T210000Z,Latrice <> Rick monthly cadence
+2022-11-14T18:00:00Z,bob@crossbeam.com,2l7pogltti74j3p5kkjgmrgfeh_R20221107T170000@google.com,2l7pogltti74j3p5kkjgmrgfeh_R20221107T170000@google.com_20221114T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2022-11-17T23:00:00Z,lbarnett@crossbeam.com,mvl6r65d3mn90ggi4ctr2ukn5s@google.com,mvl6r65d3mn90ggi4ctr2ukn5s@google.com_20221117T230000Z,Latrice / Rick
+2022-12-15T19:00:00Z,bob@crossbeam.com;lbarnett@crossbeam.com,7ot6f7o6tqph44onu6lt698rg7@google.com,7ot6f7o6tqph44onu6lt698rg7@google.com_20221215T190000Z,Rick / Bob / Latrice Working Session
+2023-01-06T18:00:00Z,bob@crossbeam.com;lbarnett@crossbeam.com,2ijvp6c604s3bu9brhc9f8clr4@google.com,2ijvp6c604s3bu9brhc9f8clr4@google.com_20230106T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2023-01-12T23:00:00Z,lbarnett@crossbeam.com,mvl6r65d3mn90ggi4ctr2ukn5s@google.com,mvl6r65d3mn90ggi4ctr2ukn5s@google.com_20230112T230000Z,Latrice / Rick
+2023-01-18T18:00:00Z,bob@crossbeam.com,2ijvp6c604s3bu9brhc9f8clr4_R20230116T173000@google.com,2ijvp6c604s3bu9brhc9f8clr4_R20230116T173000@google.com_20230118T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2023-01-26T23:00:00Z,lbarnett@crossbeam.com,mvl6r65d3mn90ggi4ctr2ukn5s@google.com,mvl6r65d3mn90ggi4ctr2ukn5s@google.com_20230126T230000Z,Latrice / Rick
+2023-01-30T18:00:00Z,bob@crossbeam.com,2ijvp6c604s3bu9brhc9f8clr4_R20230116T173000@google.com,2ijvp6c604s3bu9brhc9f8clr4_R20230116T173000@google.com_20230130T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2023-02-13T20:00:00Z,bob@crossbeam.com,2ijvp6c604s3bu9brhc9f8clr4_R20230116T173000@google.com,2ijvp6c604s3bu9brhc9f8clr4_R20230116T173000@google.com_20230213T200000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2023-02-13T22:00:00Z,lbarnett@crossbeam.com,qqb0k84dbfemf83ubcgjjqn6t0@google.com,qqb0k84dbfemf83ubcgjjqn6t0@google.com_20230213T220000Z,Latrice Barnett and Rick Armbrust
+2023-02-27T17:30:00Z,bob@crossbeam.com,2ijvp6c604s3bu9brhc9f8clr4_R20230116T173000@google.com,2ijvp6c604s3bu9brhc9f8clr4_R20230116T173000@google.com_20230227T173000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2023-02-27T22:00:00Z,lbarnett@crossbeam.com,mvl6r65d3mn90ggi4ctr2ukn5s@google.com,mvl6r65d3mn90ggi4ctr2ukn5s@google.com_20230227T220000Z,Latrice / Rick
+2023-03-06T18:30:00Z,bob@crossbeam.com;lbarnett@crossbeam.com,6o1amd2ojumh52t81okfit3rb3@google.com,6o1amd2ojumh52t81okfit3rb3@google.com_20230306T183000Z,"Joint Session: Bob, Latrice, and Rick"
+2023-03-13T16:30:00Z,bob@crossbeam.com,2ijvp6c604s3bu9brhc9f8clr4_R20230116T173000@google.com,2ijvp6c604s3bu9brhc9f8clr4_R20230116T173000@google.com_20230313T163000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2023-03-23T22:00:00Z,lbarnett@crossbeam.com,mvl6r65d3mn90ggi4ctr2ukn5s@google.com,mvl6r65d3mn90ggi4ctr2ukn5s@google.com_20230323T220000Z,Latrice / Rick
+2023-03-27T17:00:00Z,bob@crossbeam.com,2ijvp6c604s3bu9brhc9f8clr4_R20230116T173000@google.com,2ijvp6c604s3bu9brhc9f8clr4_R20230116T173000@google.com_20230327T170000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2023-04-07T16:00:00Z,lbarnett@crossbeam.com,fa6eirj8jie4ft8ue5pr60v8pc@google.com,fa6eirj8jie4ft8ue5pr60v8pc@google.com_20230407T160000Z,Latrice Barnett  and Rick Armbrust
+2023-04-10T16:30:00Z,bob@crossbeam.com,2ijvp6c604s3bu9brhc9f8clr4_R20230116T173000@google.com,2ijvp6c604s3bu9brhc9f8clr4_R20230116T173000@google.com_20230410T163000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2023-04-21T22:30:00Z,lbarnett@crossbeam.com,dsnpnp9u3qafqkn1ea1aje72uk@google.com,dsnpnp9u3qafqkn1ea1aje72uk@google.com_20230421T223000Z,Latrice Barnett  and Rick Armbrust
+2023-05-08T18:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20230508T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2023-05-08T22:00:00Z,lbarnett@crossbeam.com,6nvldchh2trq3db0ipphqtue78@google.com,6nvldchh2trq3db0ipphqtue78@google.com_20230508T220000Z,Latrice Barnett  and Rick Armbrust
+2023-05-24T19:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20230524T190000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2023-06-01T22:00:00Z,lbarnett@crossbeam.com,mvl6r65d3mn90ggi4ctr2ukn5s@google.com,mvl6r65d3mn90ggi4ctr2ukn5s@google.com_20230601T220000Z,Latrice / Rick
+2023-06-15T22:00:00Z,lbarnett@crossbeam.com,mvl6r65d3mn90ggi4ctr2ukn5s@google.com,mvl6r65d3mn90ggi4ctr2ukn5s@google.com_20230615T220000Z,Latrice / Rick
+2023-06-29T22:00:00Z,lbarnett@crossbeam.com,mvl6r65d3mn90ggi4ctr2ukn5s@google.com,mvl6r65d3mn90ggi4ctr2ukn5s@google.com_20230629T220000Z,Latrice / Rick
+2023-07-11T21:15:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20230711T211500Z,Bob Moore <> Rick Armbrust bi-weekly call
+2023-07-13T22:00:00Z,lbarnett@crossbeam.com,mvl6r65d3mn90ggi4ctr2ukn5s@google.com,mvl6r65d3mn90ggi4ctr2ukn5s@google.com_20230713T220000Z,Latrice / Rick
+2023-07-31T18:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20230731T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2023-09-05T19:00:00Z,bob@crossbeam.com,6non9jsho21neet7onb94moh4f@google.com,6non9jsho21neet7onb94moh4f@google.com_20230905T190000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2023-09-25T18:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20230925T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2023-10-23T18:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20231023T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2023-11-10T21:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20231110T210000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2023-11-29T18:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20231129T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2024-01-18T19:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20240118T190000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2024-01-30T18:30:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20240130T183000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2024-02-12T19:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20240212T190000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2024-03-06T21:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20240306T210000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2024-03-18T18:30:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20240318T183000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2024-04-16T17:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20240416T170000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2024-05-06T18:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20240506T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2024-06-03T18:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20240603T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2024-07-15T17:30:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20240715T173000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2024-07-29T18:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20240729T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2024-08-12T18:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20240812T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2024-08-26T18:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20240826T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2024-09-30T19:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20240930T190000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2024-10-07T18:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20241007T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2024-10-21T18:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20241021T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2024-11-04T19:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20241104T190000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2024-11-12T18:30:00Z,bob@crossbeam.com,7p4hc4qe8omk5ct8ppdd6vfuv4@google.com,7p4hc4qe8omk5ct8ppdd6vfuv4@google.com_20241112T183000Z,Bob Moore / Chris Holmberg / Rick Armbrust
+2024-12-02T19:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20241202T190000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2025-01-17T20:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20250117T200000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2025-01-27T19:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20250127T190000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2025-02-24T19:30:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044@google.com,jqmsq5ahrv21u06l99l5tkb044@google.com_20250224T193000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2025-03-10T17:30:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044_R20250310T180000@google.com,jqmsq5ahrv21u06l99l5tkb044_R20250310T180000@google.com_20250310T173000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2025-03-24T19:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044_R20250324T180000@google.com,jqmsq5ahrv21u06l99l5tkb044_R20250324T180000@google.com_20250324T190000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2025-04-28T18:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044_R20250421T180000@google.com,jqmsq5ahrv21u06l99l5tkb044_R20250421T180000@google.com_20250428T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2025-05-21T18:30:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044_R20250421T180000@google.com,jqmsq5ahrv21u06l99l5tkb044_R20250421T180000@google.com_20250521T183000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2025-06-18T18:30:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044_R20250421T180000@google.com,jqmsq5ahrv21u06l99l5tkb044_R20250421T180000@google.com_20250618T183000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2025-07-14T18:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044_R20250421T180000@google.com,jqmsq5ahrv21u06l99l5tkb044_R20250421T180000@google.com_20250714T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2025-07-28T18:00:00Z,bob@crossbeam.com,jqmsq5ahrv21u06l99l5tkb044_R20250421T180000@google.com,jqmsq5ahrv21u06l99l5tkb044_R20250421T180000@google.com_20250728T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2025-09-15T18:00:00Z,bob@crossbeam.com,le024eb7ni4nf5ncc558hbvaqi@google.com,le024eb7ni4nf5ncc558hbvaqi@google.com_20250915T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2025-10-13T18:30:00Z,bob@crossbeam.com,le024eb7ni4nf5ncc558hbvaqi_R20251013T180000@google.com,le024eb7ni4nf5ncc558hbvaqi_R20251013T180000@google.com_20251013T183000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2025-10-27T18:00:00Z,bob@crossbeam.com,le024eb7ni4nf5ncc558hbvaqi_R20251013T180000@google.com,le024eb7ni4nf5ncc558hbvaqi_R20251013T180000@google.com_20251027T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2025-11-10T19:00:00Z,bob@crossbeam.com,le024eb7ni4nf5ncc558hbvaqi_R20251013T180000@google.com,le024eb7ni4nf5ncc558hbvaqi_R20251013T180000@google.com_20251110T190000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2025-12-08T19:00:00Z,bob@crossbeam.com,le024eb7ni4nf5ncc558hbvaqi_R20251013T180000@google.com,le024eb7ni4nf5ncc558hbvaqi_R20251013T180000@google.com_20251208T190000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2026-02-12T20:00:00Z,bob@crossbeam.com,le024eb7ni4nf5ncc558hbvaqi_R20260202T190000@google.com,le024eb7ni4nf5ncc558hbvaqi_R20260202T190000@google.com_20260212T200000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2026-03-02T19:00:00Z,bob@crossbeam.com,le024eb7ni4nf5ncc558hbvaqi_R20260202T190000@google.com,le024eb7ni4nf5ncc558hbvaqi_R20260202T190000@google.com_20260302T190000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2026-03-16T18:00:00Z,bob@crossbeam.com,le024eb7ni4nf5ncc558hbvaqi_R20260202T190000@google.com,le024eb7ni4nf5ncc558hbvaqi_R20260202T190000@google.com_20260316T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2026-04-13T18:00:00Z,bob@crossbeam.com,le024eb7ni4nf5ncc558hbvaqi_R20260202T190000@google.com,le024eb7ni4nf5ncc558hbvaqi_R20260202T190000@google.com_20260413T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2026-04-27T18:00:00Z,bob@crossbeam.com,le024eb7ni4nf5ncc558hbvaqi_R20260202T190000@google.com,le024eb7ni4nf5ncc558hbvaqi_R20260202T190000@google.com_20260427T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2026-05-11T18:00:00Z,bob@crossbeam.com,eme0fqh8m71qln6dhftjf6jg66@google.com,eme0fqh8m71qln6dhftjf6jg66@google.com_20260511T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
+2026-06-08T18:00:00Z,bob@crossbeam.com,eme0fqh8m71qln6dhftjf6jg66@google.com,eme0fqh8m71qln6dhftjf6jg66@google.com_20260608T180000Z,Bob Moore <> Rick Armbrust bi-weekly call
