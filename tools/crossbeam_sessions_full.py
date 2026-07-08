@@ -12,9 +12,10 @@ Read-only: no Airtable or Calendar writes.
 import csv
 from datetime import timezone
 from zoneinfo import ZoneInfo
+
 from dateutil import parser as dtp
-from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
@@ -28,8 +29,10 @@ if not creds.valid and creds.expired and creds.refresh_token:
     creds.refresh(Request())
 svc = build("calendar", "v3", credentials=creds)
 
+
 def compact(d):  # YYYYMMDDTHHMMSSZ
     return d.strftime("%Y%m%dT%H%M%SZ")
+
 
 rows, page = [], None
 while True:
@@ -58,10 +61,10 @@ while True:
                 "date_pt": date_only, "duration_min": "",
                 "crossbeam_attendees": ";".join(cb),
                 "all_attendee_emails": ";".join(sorted(e for e in emails if e)),
-                "num_attendees": len(atts), "summary": (ev.get("summary") or "").replace("\n"," "),
-                "status": ev.get("status", ""), "event_type": ev.get("eventType",""),
-                "organizer_email": org, "location": (ev.get("location") or "").replace("\n"," "),
-                "created": ev.get("created",""), "updated": ev.get("updated",""),
+                "num_attendees": len(atts), "summary": (ev.get("summary") or "").replace("\n", " "),
+                "status": ev.get("status", ""), "event_type": ev.get("eventType", ""),
+                "organizer_email": org, "location": (ev.get("location") or "").replace("\n", " "),
+                "created": ev.get("created", ""), "updated": ev.get("updated", ""),
             })
             continue
         sd = dtp.isoparse(s_dt).astimezone(timezone.utc)
@@ -95,12 +98,14 @@ while True:
         break
 
 rows.sort(key=lambda r: (r["start_utc"] or r["date_pt"]))
-cols = ["calendar_event_id","icaluid","google_event_id","recurring_event_id",
-        "start_utc","end_utc","start_pt","date_pt","duration_min",
-        "crossbeam_attendees","all_attendee_emails","num_attendees",
-        "summary","status","event_type","organizer_email","location","created","updated"]
+cols = ["calendar_event_id", "icaluid", "google_event_id", "recurring_event_id",
+        "start_utc", "end_utc", "start_pt", "date_pt", "duration_min",
+        "crossbeam_attendees", "all_attendee_emails", "num_attendees",
+        "summary", "status", "event_type", "organizer_email", "location", "created", "updated"]
 with open("crossbeam_sessions.csv", "w", newline="") as f:
-    w = csv.DictWriter(f, fieldnames=cols); w.writeheader(); w.writerows(rows)
+    w = csv.DictWriter(f, fieldnames=cols)
+    w.writeheader()
+    w.writerows(rows)
 print(f"Wrote {len(rows)} Crossbeam-related events to crossbeam_sessions.csv "
       f"({sum(1 for r in rows if r['calendar_event_id'])} timed, "
       f"{sum(1 for r in rows if not r['calendar_event_id'])} all-day/no-key)")
