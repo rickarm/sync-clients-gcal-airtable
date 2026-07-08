@@ -6,11 +6,16 @@ the Airtable Sessions table. The key join column is `calendar_event_id`
 (iCalUID + "_" + UTC-compact-start) — EXACTLY what session_sync.py stores in the
 Airtable "Calendar Event ID" field. Secondary keys: start_utc / date_pt.
 
+The window ends at "now" so only sessions that have actually occurred are exported
+(future recurring instances would otherwise look like missing sessions). Override
+with the END env var (ISO date, e.g. END=2027-01-01) if you want upcoming events.
+
 Run from the repo root:  .venv/bin/python tools/crossbeam_sessions_full.py
 Read-only: no Airtable or Calendar writes.
 """
 import csv
-from datetime import timezone
+import os
+from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 from dateutil import parser as dtp
@@ -22,7 +27,10 @@ SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 PT = ZoneInfo("America/Los_Angeles")
 DOMAIN = "@crossbeam.com"          # "Crossbeam related" = anyone at this domain
 TIME_MIN = "2020-01-01T00:00:00Z"
-TIME_MAX = "2026-12-31T23:59:59Z"
+# Upper bound: now (so unheld future sessions are excluded). Override with END=YYYY-MM-DD.
+_end = os.getenv("END", "").strip()
+TIME_MAX = (dtp.isoparse(_end).replace(tzinfo=timezone.utc) if _end
+            else datetime.now(timezone.utc)).isoformat().replace("+00:00", "Z")
 
 creds = Credentials.from_authorized_user_file("token.json", SCOPES)
 if not creds.valid and creds.expired and creds.refresh_token:
@@ -106,6 +114,6 @@ with open("crossbeam_sessions.csv", "w", newline="") as f:
     w = csv.DictWriter(f, fieldnames=cols)
     w.writeheader()
     w.writerows(rows)
-print(f"Wrote {len(rows)} Crossbeam-related events to crossbeam_sessions.csv "
+print(f"Exported {len(rows)} Crossbeam-related events from {TIME_MIN} to {TIME_MAX} "
       f"({sum(1 for r in rows if r['calendar_event_id'])} timed, "
       f"{sum(1 for r in rows if not r['calendar_event_id'])} all-day/no-key)")
