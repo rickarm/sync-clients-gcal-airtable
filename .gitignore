@@ -32,3 +32,10 @@ logs/
 
 # Client data — contains PII (email → company map), never commit
 known_clients.json
+
+# Reconciliation tool outputs — contain client emails/PII, never commit
+# (produced by tools/*_sessions_full.py and tools/reconcile_diff.py)
+crossbeam_sessions.csv
+crossbeam_events.csv
+reconcile_diff.csv
+*_sessions.csv
