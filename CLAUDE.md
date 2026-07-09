@@ -38,6 +38,10 @@ requirements.txt         # Python dependencies
 scripts/
   bootstrap.sh           # Venv setup
   doctor.py              # Environment health check
+tools/
+  crossbeam_sessions_full.py  # Audit: export all calendar events for a client domain (rich columns + join key)
+  reconcile_diff.py           # Audit: year-by-year diff of calendar vs Airtable Sessions
+  dump_crossbeam_events.py    # Audit: minimal event/iCalUID dump (superseded by crossbeam_sessions_full.py)
 Makefile                 # Convenience targets
 ```
 
@@ -118,6 +122,54 @@ python add_client.py --name "Alice Smith" --email alice@co.com --company "Acme C
 4. That Company must be a real coaching client — i.e. it has a `Billing Model` set. Companies without one (referral sources, BD/relationship contacts filed under a non-client company) are skipped, even though the Contact→Company link is unique. This prevents phantom sessions (e.g. a coffee with a VC who referred a client).
 5. If exactly one unique billable Client matches across all attendees → create/update
 6. If zero or multiple Clients → skip (no create, log in no-match report)
+
+## Client Audit / Reconciliation Tools (`tools/`)
+
+Reusable scripts for auditing a client's Sessions records against Google Calendar and
+billing history. Built for the July 2026 Crossbeam reconciliation (PR #9); to reuse for
+another client, edit the constants at the top of each script (`DOMAIN` / `TARGETS` /
+`SESSION_EMAILS`, and `TIME_MIN` for the relationship start).
+
+### Audit workflow (repeatable)
+
+```bash
+# 1. Export the calendar side (rich columns incl. the exact Calendar Event ID join key)
+.venv/bin/python tools/crossbeam_sessions_full.py     # → crossbeam_sessions.csv
+
+# 2. Diff against Airtable, year by year
+.venv/bin/python tools/reconcile_diff.py              # → per-year table + reconcile_diff.csv
+```
+
+`reconcile_diff.py` buckets every session:
+- **matched** — `Calendar Event ID` identical on both sides (clean)
+- **drift** — same event (iCalUID) + same Pacific date but different time ⇒ the meeting was
+  rescheduled after sync; the Airtable key/time is stale. Fix by re-pointing the record's
+  `Calendar Event ID` + `SessionTimeDate (UTC)` to the live calendar values.
+- **calendar_only** — session on the calendar with no Airtable record ⇒ add candidate
+  (check the `is_session` flag: the wide domain net also catches intros/scheduling noise)
+- **airtable_only** — Airtable record whose key isn't on the live calendar ⇒ stale or
+  duplicate; review manually before deleting (never auto-delete)
+
+For a full billing reconciliation, also pull the client's Wave statement and compare the
+Payments table invoice-by-invoice (see the Crossbeam Billing Notes on the Company record
+for a worked example — the "debt" turned out to be two pre-Airtable 2021 invoices that
+were never entered).
+
+### Hard-won lessons (July 2026 Crossbeam audit)
+
+- **`iCalUID` is only available from the Google Calendar API** (via `token.json`) — calendar
+  MCP integrations don't expose it, and it **cannot be derived from the event `id`**:
+  recurring instances sometimes key on the master UID, sometimes on an `_R...` instance UID
+  (both exist in the same series). Never guess or reconstruct keys — always export them.
+- **Legacy date-only Sessions rows** (blank `Calendar Event ID` + blank UTC time) are
+  invisible to the sync's idempotency check — a long-window `--apply` will duplicate every
+  one of them. Backfill their keys (by matching on date) before any historical apply.
+- **Reschedules strand Airtable keys**: the key embeds the start time, so a moved event no
+  longer matches its record. This surfaces as `drift`, not as a duplicate.
+- **Cap calendar exports at *now*** — future recurring instances otherwise show up as
+  false "missing" sessions (`crossbeam_sessions_full.py` does this; override with `END=`).
+- **Tool outputs contain client emails** — all `*.csv` outputs are gitignored; never commit
+  them. Ship scripts, not data.
 
 ## What This Tool Does NOT Do
 
