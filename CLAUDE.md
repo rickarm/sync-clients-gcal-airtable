@@ -97,6 +97,8 @@ python add_client.py --name "Alice Smith" --email alice@co.com --company "Acme C
 | `Matched Attendee Email` | Email used to identify the client |
 | `Matched Contact` | Linked record → Contacts |
 | `Client` | Linked record → Clients |
+| `Count Against Package?` | Single select: Auto / Count / Exclude. Set "Exclude" on intros/kickoffs so they don't draw down a prepaid package. Blank behaves like Auto/Count (billable). The sync does not set this field. |
+| `Counts vs Package` | Formula: `IF({Count Against Package?} = 'Exclude', 0, 1)`. Feeds the Company `# Billable Sessions` rollup. |
 
 ### Contacts table
 | Field | Purpose |
@@ -111,6 +113,12 @@ python add_client.py --name "Alice Smith" --email alice@co.com --company "Acme C
 | `Billing Model` | "Prepaid Sessions" / "Retainer". **Presence = this is a real coaching client.** Used to exclude non-client companies (referral/BD contacts) from session matching. |
 | `Rate (per session)` | Billing rate in USD |
 | `Status-Company` | "Active" for current clients |
+| `Sessions Purchased (All Time)` | Rollup of Payments → Sessions Purchased |
+| `# Sessions (All Time)` | Plain count of all linked Sessions. All-time history only — do NOT use for the prepaid balance. |
+| `# Billable Sessions` | Rollup: `SUM(values)` of Sessions `Counts vs Package`. Sessions marked Exclude don't count. |
+| `Paid Sessions Remaining` | Formula: blank for Retainer, else `MAX(0, {Sessions Purchased (All Time)} - {# Billable Sessions})`. `Payment Status` reads this. |
+
+**Prepaid balance chain (issue #10):** `Count Against Package?` → `Counts vs Package` (Sessions formula) → `# Billable Sessions` (Company rollup) → `Paid Sessions Remaining` → `Payment Status`. To exempt an intro/kickoff from billing, set `Count Against Package?` = Exclude on the Sessions row — nothing else needs touching.
 
 **Known issue:** Client A, Client B, and Client C each have duplicate Contact records (same email, same Company link). Sync works (first match wins) — don't create more.
 
