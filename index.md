@@ -39,6 +39,6 @@ python session_sync.py --apply --weeks 12 --calendar-id primary
 
 ## Airtable Schema
 
-**Sessions:** `Calendar Event ID`, `SessionTimeDate (UTC)`, `Matched Attendee Email`, `Matched Contact`, `Client`
+**Sessions:** `Calendar Event ID`, `SessionTimeDate (UTC)`, `Matched Attendee Email`, `Matched Contact`, `Client`, `Count Against Package?` (set "Exclude" on intros so they don't draw down a prepaid package — see CLAUDE.md)
 
 **Contacts:** `Email`, `Client`
