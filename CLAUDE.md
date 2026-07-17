@@ -24,6 +24,15 @@ See `KB-Development-Workflow.md` in the Knowledge Base for the full workflow. Su
 
 **CI / merge gating:** `main` merge-gating is a GitHub **ruleset** ("CI-test"), NOT classic branch protection — `gh api repos/rickarm/sync-clients-gcal-airtable/branches/main/protection` returns 404. Inspect/edit via `gh api repos/rickarm/sync-clients-gcal-airtable/rulesets`. The required status-check `context` must equal the Actions **check-run name** (the job name `test`), not `ci / test` — a mismatch shows "Expected — Waiting for status to be reported" forever even though CI passed. Use the keyring-authed `gh` (repo+workflow scopes) for ruleset edits; the `GH_TOKEN` PAT in `~/.env` can't read/write protection.
 
+## Scheduled Run (launchd)
+
+`com.rickarmbrust.gcal-airtable-sync` on the mini runs `run_sync.sh` **Mon 8am + Fri 2pm**
+(`session_sync.py --apply --weeks 4 --calendar-id primary`). The plist is tracked in-repo
+(`com.rickarmbrust.gcal-airtable-sync.plist`) — edit it, copy to `~/Library/LaunchAgents/`,
+then `launchctl bootout`+`load -w` to change the schedule. On non-zero exit `run_sync.sh`
+fires three best-effort alerts (none alter the exit code): Alfred/Telegram, a Things "Today"
+task, and a GitHub issue deduped by the `sync-failure` label. Logs: `logs/launchd.log`.
+
 ## Project Structure
 
 ```
