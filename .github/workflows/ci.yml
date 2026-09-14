@@ -40,7 +40,11 @@ jobs:
             uv venv
           fi
           # Tooling the steps below need, regardless of how deps were installed.
-          uv pip install ruff pytest
+          # ruff is PINNED on purpose. It is a required status check, and an
+          # unpinned install makes the gate non-deterministic: the same commit
+          # passed on 2026-07-17 and failed on 2026-08-03 with 171 errors in
+          # tools/*.py, with no code change in between. Bump deliberately.
+          uv pip install 'ruff==0.15.8' pytest
 
       - name: Lint (ruff)
         run: uv run ruff check .
