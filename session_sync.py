@@ -29,6 +29,10 @@ Usage:
   # Backfill longer window
   python session_sync.py --apply --weeks 12
 
+  # Exact dates (Pacific, inclusive). --end defaults to --start.
+  python session_sync.py --dry-run --start 2026-09-28
+  python session_sync.py --apply --start 2026-09-01 --end 2026-09-07
+
 Required env vars (in .env):
   AIRTABLE_PAT
   AIRTABLE_BASE_ID
@@ -47,10 +51,11 @@ import argparse
 import json
 import logging
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from zoneinfo import ZoneInfo
 
 import requests
 from dateutil import parser as dtparser
@@ -69,6 +74,9 @@ load_dotenv(dotenv_path=".env")
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
 DEFAULT_WEEKS = 4
+
+# --start/--end dates are calendar days in this zone (Rick's calendar zone).
+LOCAL_TZ = ZoneInfo("America/Los_Angeles")
 
 FIELD_MAP: Dict[str, Dict[str, str]] = {
     "sessions": {
@@ -529,6 +537,34 @@ def resolve_unique_client(
     return None, None, None
 
 
+def compute_window(
+    now_utc: datetime,
+    weeks: int,
+    start: Optional[date] = None,
+    end: Optional[date] = None,
+    tz: ZoneInfo = LOCAL_TZ,
+) -> Tuple[datetime, datetime, str]:
+    """Return (start_utc, end_utc, label) for the calendar query.
+
+    With no dates: the last `weeks` weeks up to now. With --start (and optional
+    --end, defaulting to --start): those whole local days, inclusive. The end is
+    always capped at now, so sessions that have not started are never synced.
+    """
+    if start is None:
+        if end is not None:
+            raise ValueError("--end requires --start")
+        return now_utc - timedelta(weeks=weeks), now_utc, f"{weeks} weeks"
+    end = end or start
+    if end < start:
+        raise ValueError(f"--end {end} is before --start {start}")
+    start_utc = datetime.combine(start, time.min, tz).astimezone(timezone.utc)
+    if start_utc >= now_utc:
+        raise ValueError(f"--start {start} is in the future")
+    end_utc = datetime.combine(end + timedelta(days=1), time.min, tz).astimezone(timezone.utc)
+    label = f"{start}" if start == end else f"{start} to {end}"
+    return start_utc, min(end_utc, now_utc), label
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -538,6 +574,14 @@ def main() -> None:
         description="Sync Google Calendar coaching sessions into Airtable."
     )
     ap.add_argument("--weeks", type=int, default=DEFAULT_WEEKS, help="Lookback window in weeks")
+    ap.add_argument(
+        "--start", type=date.fromisoformat, metavar="YYYY-MM-DD",
+        help="First day to sync (Pacific). Overrides --weeks.",
+    )
+    ap.add_argument(
+        "--end", type=date.fromisoformat, metavar="YYYY-MM-DD",
+        help="Last day to sync, inclusive (default: same as --start). Capped at now.",
+    )
     ap.add_argument("--calendar-id", default="primary")
     ap.add_argument("--credentials", default="credentials.json")
     ap.add_argument("--token", default="token.json")
@@ -568,6 +612,12 @@ def main() -> None:
     mode.add_argument("--apply", action="store_true")
 
     args = ap.parse_args()
+    try:
+        start_utc, end_utc, window_label = compute_window(
+            datetime.now(timezone.utc), args.weeks, args.start, args.end
+        )
+    except ValueError as e:
+        ap.error(str(e))
 
     logger = setup_logging(args.verbose)
 
@@ -596,14 +646,12 @@ def main() -> None:
 
     # Google Calendar
     service = load_google_service(args.credentials, args.token)
-    now_utc = datetime.now(timezone.utc)
-    start_utc = now_utc - timedelta(weeks=args.weeks)
     time_min = start_utc.isoformat().replace("+00:00", "Z")
-    time_max = now_utc.isoformat().replace("+00:00", "Z")
+    time_max = end_utc.isoformat().replace("+00:00", "Z")
 
     mode_label = "APPLY" if args.apply else "DRY RUN"
-    logger.info(f"=== Sync started | mode={mode_label} | weeks={args.weeks} | calendar={args.calendar_id} ===")
-    logger.info(f"Fetching calendar events ({args.weeks} weeks)...")
+    logger.info(f"=== Sync started | mode={mode_label} | window={window_label} | calendar={args.calendar_id} ===")
+    logger.info(f"Fetching calendar events ({window_label})...")
     events = list_calendar_events(service, args.calendar_id, time_min, time_max)
     logger.info(f"Found {len(events)} events.")
 
@@ -757,7 +805,7 @@ def main() -> None:
     # Summary
     summary_mode = "DRY RUN" if args.dry_run else "APPLIED"
     logger.info(f"\n--- Sync Summary [{summary_mode}] ---")
-    logger.info(f"Lookback:              {args.weeks} weeks")
+    logger.info(f"Window:                {window_label}")
     logger.info(f"Calendar:              {args.calendar_id}")
     logger.info(f"Events fetched:        {len(events)}")
     logger.info(f"Sessions created:      {n_created}")
