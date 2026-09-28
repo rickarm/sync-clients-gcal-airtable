@@ -217,3 +217,7 @@ Confirm PAT is valid and has access to the base.
 
 **Verifying changes to matching logic:**
 `make dryrun` shows already-synced events as "Already complete" and does NOT re-run client matching for them — so it won't catch a regression in matching on existing sessions. To verify matching changes, unit-test the function directly against live Airtable (e.g. call `company_is_billable_client` / `resolve_unique_client` with real record IDs) or test against a fresh, unsynced event.
+
+## KB session links (kb_links.py)
+
+Fills `KB File Path`, `Drive Folder`, `Transcript` and `Last Synced to KB At` on Sessions rows from the KB client notes (`~/Dev/kb/coaching/client-notes/<First>-YYYY-MM-DD.md`, the `**Recording:**` line). Matches on Pacific date plus the first name of `Name (from Matched Contact)` (the note's filename or `**Client:**` line). Fill-blank only: a different existing value is reported as `conflict` and left alone; it never creates rows. Callers: `/transcript` after filing (`--note`), `run_sync.sh` weekly (`--days 56`), `make link-backfill`. Transcript file preference: `transcript.md`, then any `.md`, `.txt`, `.srt`, `.vtt`. Needs rclone remote `rickdrive` (mini only); without it the folder and note still link and the run reports `rclone-error`.

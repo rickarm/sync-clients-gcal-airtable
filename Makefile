@@ -17,6 +17,9 @@ help:
 	@echo "  make dryrun1       Dry run, last 1 week"
 	@echo "  make dryrun12      Dry run, last 12 weeks"
 	@echo "  make freeze        Write requirements.txt"
+	@echo "  make link-dryrun   KB/Drive links, last 8 weeks, dry run"
+	@echo "  make link-apply    KB/Drive links, last 8 weeks, write"
+	@echo "  make link-backfill KB/Drive links, every note, dry run (add APPLY=1 to write)"
 	@echo ""
 
 bootstrap:
@@ -54,3 +57,12 @@ apply:
 freeze:
 	@$(PIP) freeze > requirements.txt
 	@echo "Wrote requirements.txt"
+
+link-dryrun:
+	@$(PY) kb_links.py --days 56
+
+link-apply:
+	@$(PY) kb_links.py --days 56 --apply
+
+link-backfill:
+	@$(PY) kb_links.py $(if $(APPLY),--apply,)
