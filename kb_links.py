@@ -17,6 +17,8 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import requests
+
 F_TIME = "SessionTimeDate (UTC)"
 F_NAME = "Name (from Matched Contact)"
 F_KB = "KB File Path"
@@ -29,8 +31,10 @@ NOTE_RE = re.compile(r"^([A-Za-z]+)-(\d{4}-\d{2}-\d{2})\.md$")
 FOLDER_RE = re.compile(r"^\*\*Recording:\*\*.*drive\.google\.com/drive/folders/([A-Za-z0-9_-]+)", re.M)
 CLIENT_RE = re.compile(r"^\*\*Client:\*\*\s*([A-Za-z]+)", re.M)
 # Most preferred first. Media and provenance files are never transcripts.
+TRANSCRIPT_EXTS = (".md", ".txt", ".srt", ".vtt")
 TRANSCRIPT_PREFS = [
     lambda p: p == "transcript.md",
+    lambda p: "transcript" in p and p.endswith(TRANSCRIPT_EXTS),
     lambda p: p.endswith(".md"),
     lambda p: p.endswith(".txt"),
     lambda p: p.endswith(".srt"),
@@ -42,7 +46,7 @@ TRANSCRIPT_PREFS = [
 class Note:
     rel_path: str
     date: str
-    names: frozenset
+    names: frozenset[str]
     folder_id: str | None
 
 
@@ -96,8 +100,9 @@ def plan_fields(note: Note, transcript_id: str | None, record: dict, now_iso: st
     if transcript_id:
         want[F_TRANSCRIPT] = f"https://drive.google.com/file/d/{transcript_id}/view"
     have = record.get("fields", {})
-    if any(have.get(k) and have[k] != v for k, v in want.items()):
-        return "conflict", {}
+    conflicts = {k: have[k] for k, v in want.items() if have.get(k) and have[k] != v}
+    if conflicts:
+        return "conflict", conflicts
     todo = {k: v for k, v in want.items() if not have.get(k)}
     if not todo:
         return "already-linked", {}
@@ -152,18 +157,36 @@ def main(argv: list[str] | None = None) -> int:
     pat, base = os.environ.get("AIRTABLE_PAT", ""), os.environ.get("AIRTABLE_BASE_ID", "")
     kb = a.kb.resolve()
     paths = [p.resolve() for p in a.note] if a.note else sorted((kb / "coaching" / "client-notes").glob("*.md"))
-    cutoff = (date.today() - timedelta(days=a.days)).isoformat() if a.days else None
-    notes = [n for n in (parse_note(p, kb) for p in paths) if n and (not cutoff or n.date >= cutoff)]
+    cutoff = (date.today() - timedelta(days=a.days)).isoformat() if a.days is not None else None
+    notes = []
+    skipped = 0
+    for p in paths:
+        try:
+            n = parse_note(p, kb)
+        except ValueError:
+            n = None
+        if n is None:
+            skipped += 1
+            print(f"skip {p} (not a client session note)")
+            continue
+        if not cutoff or n.date >= cutoff:
+            notes.append(n)
     try:
         records = list_sessions(pat, base)
-    except RuntimeError as e:
+    except (RuntimeError, requests.RequestException) as e:
         print(f"AIRTABLE FAIL: {e}")
         return 1
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     counts = dict.fromkeys(STATUSES, 0)
     rows = []
-    for n in notes:
-        status, r = match_session(n, records)
+    matches = [(n, *match_session(n, records)) for n in notes]
+    dup_counts: dict[str, int] = {}
+    for _, status, r in matches:
+        if status == "matched":
+            dup_counts[r["id"]] = dup_counts.get(r["id"], 0) + 1
+    for n, status, r in matches:
+        if status == "matched" and dup_counts[r["id"]] > 1:
+            status = "ambiguous"
         if status != "matched":
             counts[status] += 1
             print(f"{status} {n.rel_path}")
@@ -172,21 +195,25 @@ def main(argv: list[str] | None = None) -> int:
         if n.folder_id:
             try:
                 tid = pick_transcript(list_folder(n.folder_id))
-            except (RuntimeError, subprocess.TimeoutExpired, json.JSONDecodeError) as e:
+            except (RuntimeError, subprocess.TimeoutExpired, json.JSONDecodeError, OSError) as e:
                 counts["rclone-error"] += 1
                 print(f"rclone-error {n.rel_path}: {e}")
         status, fields = plan_fields(n, tid, r, now)
         counts[status] += 1
+        if status == "conflict":
+            print(f"conflict {n.rel_path} -> {r['id']} (fields: {', '.join(fields)})")
+            continue
         print(f"{status} {n.rel_path} -> {r['id']}")
-        if fields:
+        if status == "write":
             rows.append({"id": r["id"], "fields": fields})
     if a.apply and rows:
         try:
             patch(pat, base, rows)
-        except RuntimeError as e:
+        except (RuntimeError, requests.RequestException) as e:
             print(f"AIRTABLE FAIL: {e}")
             return 1
-    print("RESULT: " + " ".join(f"{s}={counts[s]}" for s in STATUSES) + ("" if a.apply else " (dry run)"))
+    result = "RESULT: " + " ".join(f"{s}={counts[s]}" for s in STATUSES) + f" skipped={skipped}"
+    print(result + ("" if a.apply else " (dry run)"))
     return 0
 
 

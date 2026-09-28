@@ -26,7 +26,7 @@ RC=$?
 # Link KB notes + Drive transcripts to Sessions rows created since the last run (fill-blank only).
 # Never changes $RC: a linker problem must not mark the calendar sync as failed.
 "$SCRIPT_DIR/.venv/bin/python" "$SCRIPT_DIR/kb_links.py" --apply --days 56 \
-  || echo "[$(date '+%Y-%m-%d %H:%M:%S')] kb_links.py failed (exit $?)"
+  || { rc=$?; echo "[$(date '+%Y-%m-%d %H:%M:%S')] kb_links.py failed (exit $rc)"; }
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] run_sync.sh done (exit $RC)"
 

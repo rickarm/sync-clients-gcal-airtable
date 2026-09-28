@@ -1,8 +1,6 @@
-from pathlib import Path
+import requests
 
 import kb_links as k
-
-KB = Path("/kb")
 
 
 def write_note(tmp_path, name, body):
@@ -58,6 +56,11 @@ def test_pick_transcript_falls_back_to_txt():
     assert k.pick_transcript(files) == "t"
 
 
+def test_pick_transcript_prefers_transcript_named_file_over_generic_md():
+    files = [{"Path": "prep-primer.md", "ID": "p"}, {"Path": "session-transcript.txt", "ID": "t"}]
+    assert k.pick_transcript(files) == "t"
+
+
 def test_pick_transcript_ignores_provenance_and_media():
     files = [{"Path": "zoom.vtt.provenance.json", "ID": "p"}, {"Path": "x.mp4", "ID": "v"}]
     assert k.pick_transcript(files) is None
@@ -106,10 +109,12 @@ def test_plan_fields_already_linked():
     assert k.plan_fields(n, "T", r, "now") == ("already-linked", {})
 
 
-def test_plan_fields_conflict_writes_nothing():
+def test_plan_fields_conflict_names_the_differing_fields():
     n = k.Note("coaching/client-notes/Vic-2026-09-28.md", "2026-09-28", frozenset({"vic"}), "F")
     r = rec("v", "x", "Vic", **{k.F_KB: "coaching/client-notes/Other-2026-09-28.md"})
-    assert k.plan_fields(n, "T", r, "now") == ("conflict", {})
+    status, conflicts = k.plan_fields(n, "T", r, "now")
+    assert status == "conflict"
+    assert set(conflicts) == {k.F_KB}
 
 
 def test_plan_fields_without_recording_links_note_only():
@@ -171,6 +176,52 @@ def test_cli_rclone_failure_still_links_folder(monkeypatch, tmp_path, capsys):
     assert "rclone-error=1" in capsys.readouterr().out
 
 
+def test_cli_two_notes_matching_same_record_are_both_ambiguous(monkeypatch, tmp_path, capsys):
+    write_note(tmp_path, "Vic-2026-09-28.md", NOTE)
+    other = "**Client:** Vic Someoneelse\n**Date:** 2026-09-28\n"
+    write_note(tmp_path, "Meg-2026-09-28.md", other)
+    code, patched = run_cli(
+        monkeypatch, tmp_path, [rec("v", "2026-09-28T16:30:00.000Z", "Vic Mileham")], ["--apply"]
+    )
+    out = capsys.readouterr().out
+    assert code == 0 and patched == []
+    assert out.count("ambiguous ") == 2
+    assert "ambiguous=2" in out
+
+
+def test_cli_conflict_names_fields_and_writes_nothing(monkeypatch, tmp_path, capsys):
+    write_note(tmp_path, "Vic-2026-09-28.md", NOTE)
+    conflicting_record = rec(
+        "v", "2026-09-28T16:30:00.000Z", "Vic Mileham", **{k.F_KB: "coaching/client-notes/Other-2026-09-28.md"}
+    )
+    code, patched = run_cli(monkeypatch, tmp_path, [conflicting_record], ["--apply"])
+    out = capsys.readouterr().out
+    assert code == 0 and patched == []
+    assert f"conflict coaching/client-notes/Vic-2026-09-28.md -> v (fields: {k.F_KB})" in out
+    assert "conflict=1" in out
+
+
+def test_cli_note_with_bad_filename_is_skipped(monkeypatch, tmp_path, capsys):
+    bad = write_note(tmp_path, "not-a-session-note.md", "irrelevant").resolve()
+    code, patched = run_cli(monkeypatch, tmp_path, [], ["--apply", "--note", str(bad)])
+    out = capsys.readouterr().out
+    assert code == 0 and patched == []
+    assert f"skip {bad} (not a client session note)" in out
+    assert "skipped=1" in out
+
+
+def test_cli_note_outside_kb_is_skipped(monkeypatch, tmp_path, capsys):
+    outside_dir = (tmp_path.parent / "outside-kb").resolve()
+    outside_dir.mkdir(exist_ok=True)
+    outside = outside_dir / "Vic-2026-09-28.md"
+    outside.write_text(NOTE)
+    code, patched = run_cli(monkeypatch, tmp_path, [], ["--apply", "--note", str(outside)])
+    out = capsys.readouterr().out
+    assert code == 0 and patched == []
+    assert f"skip {outside} (not a client session note)" in out
+    assert "skipped=1" in out
+
+
 def test_cli_days_filter(monkeypatch, tmp_path, capsys):
     write_note(tmp_path, "Vic-2020-01-01.md", NOTE.replace("2026-09-28", "2020-01-01"))
     code, _ = run_cli(monkeypatch, tmp_path, [], ["--days", "56"])
@@ -188,3 +239,35 @@ def test_cli_airtable_failure_exits_one(monkeypatch, tmp_path):
 
     monkeypatch.setattr(k, "list_sessions", fail)
     assert k.main(["--kb", str(tmp_path)]) == 1
+
+
+def test_cli_airtable_connection_error_exits_one(monkeypatch, tmp_path, capsys):
+    write_note(tmp_path, "Vic-2026-09-28.md", NOTE)
+    monkeypatch.setenv("AIRTABLE_PAT", "pat")
+    monkeypatch.setenv("AIRTABLE_BASE_ID", "app")
+    monkeypatch.setattr(k, "load_env", lambda: None)
+
+    def fail(pat, base):
+        raise requests.ConnectionError("connection refused")
+
+    monkeypatch.setattr(k, "list_sessions", fail)
+    assert k.main(["--kb", str(tmp_path)]) == 1
+    assert "AIRTABLE FAIL" in capsys.readouterr().out
+
+
+def test_cli_rclone_missing_binary_counted_as_rclone_error(monkeypatch, tmp_path, capsys):
+    write_note(tmp_path, "Vic-2026-09-28.md", NOTE)
+
+    def boom(fid):
+        raise FileNotFoundError("rclone not found")
+
+    monkeypatch.setenv("AIRTABLE_PAT", "pat")
+    monkeypatch.setenv("AIRTABLE_BASE_ID", "app")
+    monkeypatch.setattr(k, "load_env", lambda: None)
+    monkeypatch.setattr(k, "list_sessions", lambda pat, base: [rec("v", "2026-09-28T16:30:00.000Z", "Vic Mileham")])
+    monkeypatch.setattr(k, "list_folder", boom)
+    monkeypatch.setattr(k, "patch", lambda pat, base, rows: None)
+    code = k.main(["--kb", str(tmp_path), "--apply"])
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "rclone-error=1" in out
