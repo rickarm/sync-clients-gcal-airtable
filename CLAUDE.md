@@ -26,28 +26,55 @@ See `KB-Development-Workflow.md` in the Knowledge Base for the full workflow. Su
 
 ## Scheduled Run (launchd)
 
-`com.rickarmbrust.gcal-airtable-sync` on the mini runs `run_sync.sh` **daily at 6am** (full run, below),
-then **hourly at :45 from 7:45am to 5:45pm** in `today` mode (`--start <today> --include-today`
-only), so a session booked after 6am gets a row within the hour, before it starts if it begins on
-the hour. `run_sync.sh` picks the mode from its first argument, else by the clock (before 7am = full).
-Today-mode runs skip the stale check, KB links and failure alerts; the next 6am run covers all three.
-The 6am full run is
-(`session_sync.py --apply --weeks 4 --include-today --stale-file logs/stale_sessions.json`).
-`--include-today` moves the window's end from "now" to the end of today (Pacific), so the day's
-upcoming sessions get rows before they happen. Without it, only sessions that have started sync.
-Because rows can now exist before the session, every run also lists rows in the window whose
-Calendar Event ID matches no live event (canceled, or moved, since the key embeds the start time)
-in `logs/stale_sessions.json`. They are **never deleted**; rows new since the last run go to
-`stale_sessions.json.new` and `run_sync.sh` files one Things task for Rick to review. The plist is tracked in-repo
-(`com.rickarmbrust.gcal-airtable-sync.plist`) — edit it, copy to `~/Library/LaunchAgents/`,
-then `launchctl bootout`+`load -w` to change the schedule. On non-zero exit `run_sync.sh`
-fires three best-effort alerts (none alter the exit code): Alfred/Telegram, a Things "Today"
-task, and a GitHub issue deduped by the `sync-failure` label. Logs: `logs/launchd.log`.
+One launchd job on the mini, `com.rickarmbrust.gcal-airtable-sync`, runs `run_sync.sh` 12 times a
+day. Every run is idempotent, so overlapping windows are safe.
+
+| When | Mode | What it does |
+|---|---|---|
+| 6:00am | `full` | `session_sync.py --apply --weeks 4 --include-today --stale-file logs/stale_sessions.json`: the last 4 weeks plus the rest of today. Then the stale check's Things task, `kb_links.py --apply --days 56`, and the failure alerts. |
+| Hourly at :45, 7:45am to 5:45pm | `today` | `session_sync.py --apply --start <today> --include-today`: today only, so a session booked after 6am gets a row within the hour (before it starts, if it begins on the hour). No stale file, no KB links, no failure alerts. |
+
+**`--include-today`** moves the window's end from "now" to the end of today (Pacific), never into
+tomorrow. Without it a window ends at run time, so only sessions that have already started sync.
+
+**Choosing the mode.** A launchd plist cannot pass different arguments to different time slots, so
+`run_sync.sh` takes the mode from its first argument, and with none (how launchd calls it) picks by
+the clock: before 7am = `full`, later = `today`. Manual runs: `bash run_sync.sh full` or
+`bash run_sync.sh today`. A bare manual run during the day is a `today` run.
+
+**Stale check (full run).** Rows can now exist before the session, so the full run lists Sessions
+rows in its window whose `Calendar Event ID` matches no live calendar event: the session was
+canceled, or moved (the key embeds the start time, so a moved session also gets a new row). The
+list goes to `logs/stale_sessions.json`; rows are **never deleted**. Rows not seen on the previous
+run go to `logs/stale_sessions.json.new`, and `run_sync.sh` files one Things task, "Review Airtable
+sessions with no calendar event", listing them, so each stale row alerts once. Because the 6am
+window includes yesterday, a same-day cancellation is flagged the next morning. Today-mode runs
+print stale rows to the log but do not write the file, since a today-only list would drop the full
+run's 4-week list and re-alert on it at 6am.
+
+**Failure alerts (full run only).** On non-zero exit `run_sync.sh` fires three best-effort alerts
+(none alter the exit code): Alfred/Telegram, a Things "Today" task, and a GitHub issue deduped by
+the `sync-failure` label. Today-mode failures are only logged; if the problem persists, the next
+6am run alerts, so a broken token cannot raise 11 alerts in a day. A `kb_links.py` failure is
+logged and never marks the run failed.
+
+**Known gaps.** A session booked after 5:45pm for that evening, or booked less than an hour before
+an off-the-hour start, gets its row at the next run (the next morning at worst). `/session-sync
+today` fills it immediately. To cover evenings, add slots to the plist.
+
+**Changing the schedule.** The plist is tracked in-repo (`com.rickarmbrust.gcal-airtable-sync.plist`):
+edit it, copy to `~/Library/LaunchAgents/`, then `launchctl bootout gui/501/com.rickarmbrust.gcal-airtable-sync`
+and `launchctl load -w <plist>`. Confirm with `launchctl print gui/501/com.rickarmbrust.gcal-airtable-sync`
+(12 `"Hour"` entries). If you move the 6am slot past 7am, change the clock rule in `run_sync.sh` too.
+Logs: `logs/launchd.log` (each run logs its mode).
 
 ## Project Structure
 
 ```
 session_sync.py          # Main script (primary entry point)
+run_sync.sh              # launchd entry point: full (6am) or today (hourly) mode, alerts
+com.rickarmbrust.gcal-airtable-sync.plist  # launchd schedule (tracked; copy to ~/Library/LaunchAgents)
+kb_links.py              # Links KB notes + Drive transcripts to Sessions rows
 add_client.py            # New client onboarding: creates Company + Contact in Airtable, adds to known_clients.json
 known_clients.json       # Email → company_record_id map; auto-creates Contact on first sync if missing from Airtable
 sync_last_4_weeks.py     # Original script (kept for reference)
@@ -63,6 +90,7 @@ tools/
   reconcile_diff.py           # Audit: year-by-year diff of calendar vs Airtable Sessions
   dump_crossbeam_events.py    # Audit: minimal event/iCalUID dump (superseded by crossbeam_sessions_full.py)
 Makefile                 # Convenience targets
+tests/                   # pytest suite (runs in CI; no pytest on the mini)
 ```
 
 ## Environment Variables
