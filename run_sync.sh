@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# Entry point for the launchd weekly gcal→airtable sync.
+# Entry point for the launchd daily (6am) gcal→airtable sync.
+#
+# Syncs the last 4 weeks plus the rest of today, so the day's upcoming sessions
+# already have Sessions rows. Rows whose event was later canceled or moved are
+# listed in logs/stale_sessions.json (never deleted); new ones file a Things task.
 #
 # Does NOT source .env via bash. python-dotenv inside session_sync.py reads it
 # directly, which handles quoting and special characters that bash's `source`
@@ -19,9 +23,27 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] run_sync.sh starting"
 "$SCRIPT_DIR/.venv/bin/python" session_sync.py \
   --apply \
   --weeks 4 \
+  --include-today \
+  --stale-file "$LOG_DIR/stale_sessions.json" \
   --calendar-id primary
 
 RC=$?
+
+# New stale rows (event canceled or moved after its row was created): one Things
+# task listing them. Best-effort; never changes $RC.
+STALE_NEW="$LOG_DIR/stale_sessions.json.new"
+if [[ $RC -eq 0 && -s "$STALE_NEW" ]]; then
+  S_TITLE="Review Airtable sessions with no calendar event"
+  S_NOTES="These Sessions rows no longer match a calendar event (canceled or moved). Delete or fix them in Airtable if the session did not happen at that time:
+$(cat "$STALE_NEW")
+
+Full list: logs/stale_sessions.json in sync-clients-gcal-airtable.
+-from claude"
+  S_URL="$(S_TITLE="$S_TITLE" S_NOTES="$S_NOTES" python3 -c 'import os,urllib.parse; print("things:///add?"+urllib.parse.urlencode({"title":os.environ["S_TITLE"],"notes":os.environ["S_NOTES"],"when":"today"}, quote_via=urllib.parse.quote))')"
+  open -g "$S_URL" >/dev/null 2>&1 \
+    && echo "[$(date '+%Y-%m-%d %H:%M:%S')] Things stale-sessions task created" \
+    || echo "[$(date '+%Y-%m-%d %H:%M:%S')] Things stale-sessions task FAILED"
+fi
 
 # Link KB notes + Drive transcripts to Sessions rows created since the last run (fill-blank only).
 # Never changes $RC: a linker problem must not mark the calendar sync as failed.

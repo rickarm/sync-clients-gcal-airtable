@@ -33,6 +33,10 @@ Usage:
   python session_sync.py --dry-run --start 2026-09-28
   python session_sync.py --apply --start 2026-09-01 --end 2026-09-07
 
+  # Daily scheduled run: last 4 weeks plus sessions later today, and flag
+  # rows whose calendar event was canceled or moved
+  python session_sync.py --apply --weeks 4 --include-today --stale-file logs/stale_sessions.json
+
 Required env vars (in .env):
   AIRTABLE_PAT
   AIRTABLE_BASE_ID
@@ -543,17 +547,24 @@ def compute_window(
     start: Optional[date] = None,
     end: Optional[date] = None,
     tz: ZoneInfo = LOCAL_TZ,
+    include_today: bool = False,
 ) -> Tuple[datetime, datetime, str]:
     """Return (start_utc, end_utc, label) for the calendar query.
 
-    With no dates: the last `weeks` weeks up to now. With --start (and optional
-    --end, defaulting to --start): those whole local days, inclusive. The end is
-    always capped at now, so sessions that have not started are never synced.
+    With no dates: the last `weeks` weeks. With --start (and optional --end,
+    defaulting to --start): those whole local days, inclusive. The end is capped
+    at now, so sessions that have not started are not synced. With
+    include_today the cap moves to the end of today (local), so today's
+    upcoming sessions get rows ahead of time; never further into the future.
     """
+    today_local = now_utc.astimezone(tz).date()
+    end_of_today = datetime.combine(today_local + timedelta(days=1), time.min, tz).astimezone(timezone.utc)
+    cap = end_of_today if include_today else now_utc
     if start is None:
         if end is not None:
             raise ValueError("--end requires --start")
-        return now_utc - timedelta(weeks=weeks), now_utc, f"{weeks} weeks"
+        label = f"{weeks} weeks" + (" + rest of today" if include_today else "")
+        return now_utc - timedelta(weeks=weeks), cap, label
     end = end or start
     if end < start:
         raise ValueError(f"--end {end} is before --start {start}")
@@ -562,7 +573,51 @@ def compute_window(
         raise ValueError(f"--start {start} is in the future")
     end_utc = datetime.combine(end + timedelta(days=1), time.min, tz).astimezone(timezone.utc)
     label = f"{start}" if start == end else f"{start} to {end}"
-    return start_utc, min(end_utc, now_utc), label
+    return start_utc, min(end_utc, cap), label
+
+
+def find_stale_sessions(
+    records: List[Dict[str, Any]],
+    seen_ceids: set,
+    start_utc: datetime,
+    end_utc: datetime,
+    f_ceid: str,
+    f_time: str,
+) -> List[Dict[str, Any]]:
+    """Sessions rows inside the window whose Calendar Event ID matched no live event.
+
+    A row created ahead of time for a session that was later canceled or moved
+    (the key embeds the start time) shows up here. Rows with no key or no time
+    (legacy date-only rows) are ignored. Report only: never delete.
+    """
+    stale = []
+    for r in records:
+        f = r.get("fields", {}) or {}
+        ceid, t = f.get(f_ceid), f.get(f_time)
+        if not ceid or not t:
+            continue
+        if start_utc <= dtparser.isoparse(t) < end_utc and ceid not in seen_ceids:
+            stale.append(r)
+    return sorted(stale, key=lambda r: r["fields"][f_time])
+
+
+def write_stale_file(path: Path, rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Save the current stale rows to `path` (JSON) and return the ones not in
+    the previous file. Those new rows are also written to `<path>.new`, one line
+    each, so run_sync.sh can alert once per row instead of every run."""
+    new_path = path.with_name(path.name + ".new")
+    try:
+        prev = {r["id"] for r in json.loads(path.read_text())}
+    except (OSError, ValueError, KeyError, TypeError):
+        prev = set()
+    new = [r for r in rows if r["id"] not in prev]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(rows, indent=2))
+    if new:
+        new_path.write_text("".join(f"{r['time']} | {r['client']} | {r['id']}\n" for r in new))
+    elif new_path.exists():
+        new_path.unlink()
+    return new
 
 
 # ---------------------------------------------------------------------------
@@ -581,6 +636,15 @@ def main() -> None:
     ap.add_argument(
         "--end", type=date.fromisoformat, metavar="YYYY-MM-DD",
         help="Last day to sync, inclusive (default: same as --start). Capped at now.",
+    )
+    ap.add_argument(
+        "--include-today",
+        action="store_true",
+        help="Extend the window to the end of today (Pacific), so sessions later today get rows now.",
+    )
+    ap.add_argument(
+        "--stale-file", type=Path, metavar="PATH",
+        help="Save rows whose calendar event was canceled or moved to PATH (JSON); new ones go to PATH.new.",
     )
     ap.add_argument("--calendar-id", default="primary")
     ap.add_argument("--credentials", default="credentials.json")
@@ -614,7 +678,8 @@ def main() -> None:
     args = ap.parse_args()
     try:
         start_utc, end_utc, window_label = compute_window(
-            datetime.now(timezone.utc), args.weeks, args.start, args.end
+            datetime.now(timezone.utc), args.weeks, args.start, args.end,
+            include_today=args.include_today,
         )
     except ValueError as e:
         ap.error(str(e))
@@ -674,6 +739,7 @@ def main() -> None:
     # Report details
     create_details: List[Dict] = []
     no_match_details: List[Tuple[str, str, List[str]]] = []
+    seen_ceids: set = set()
 
     def get_existing_session(ceid: str) -> Optional[Dict[str, Any]]:
         if ceid in existing_session_cache:
@@ -706,6 +772,7 @@ def main() -> None:
         if not ceid:
             logger.debug(f"Skip (no ceid): \"{ev.get('summary', '(no title)')}\"")
             continue
+        seen_ceids.add(ceid)
 
         summary = ev.get("summary", "(no title)")
         attendees = extract_attendee_emails(ev, exclude_emails=self_emails)
@@ -802,6 +869,25 @@ def main() -> None:
         for i in range(0, len(to_patch), 10):
             airtable_patch_records(pat, base_id, sessions_table, to_patch[i:i + 10])
 
+    # Stale check: rows in the window whose event is gone (canceled or moved).
+    f_name = "Name (from Matched Contact)"
+    all_sessions = airtable_list_records(
+        pat=pat, base_id=base_id, table=sessions_table, fields=[f_ceid, f_time, f_name],
+    )
+    stale = find_stale_sessions(all_sessions, seen_ceids, start_utc, end_utc, f_ceid, f_time)
+    stale_rows = [
+        {
+            "id": r["id"],
+            "time": dtparser.isoparse(r["fields"][f_time]).astimezone(LOCAL_TZ).strftime("%Y-%m-%d %H:%M"),
+            "client": ", ".join(r["fields"].get(f_name) or []) or "(no contact)",
+            "ceid": r["fields"][f_ceid],
+        }
+        for r in stale
+    ]
+    new_stale: List[Dict[str, Any]] = []
+    if args.stale_file:
+        new_stale = write_stale_file(args.stale_file, stale_rows)
+
     # Summary
     summary_mode = "DRY RUN" if args.dry_run else "APPLIED"
     logger.info(f"\n--- Sync Summary [{summary_mode}] ---")
@@ -813,6 +899,7 @@ def main() -> None:
     logger.info(f"Already complete:      {n_already_present}  (no changes)")
     logger.info(f"Skipped (no attendees):{n_skipped}")
     logger.info(f"No unique match:       {n_no_match}  (not created)")
+    logger.info(f"Stale (canceled/moved):{len(stale_rows)}  ({len(new_stale)} new; not deleted)")
     logger.info("-----------------------------------")
     logger.info("=== Sync complete ===")
 
@@ -826,6 +913,11 @@ def main() -> None:
             logger.info(f"    client:  {row['matched_client_id']}")
         if len(create_details) > 200:
             logger.info(f"  ... ({len(create_details) - 200} more)")
+
+    if stale_rows:
+        logger.info("--- Sessions rows with no live calendar event (canceled or moved; review by hand) ---")
+        for row in stale_rows:
+            logger.info(f"  {row['time']} | {row['client']} | {row['id']}")
 
     if args.report_no_match and no_match_details:
         logger.info("--- Events with no unique client match ---")
