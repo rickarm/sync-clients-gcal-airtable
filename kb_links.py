@@ -6,9 +6,14 @@ Never creates Sessions rows (the calendar sync owns them). See CLAUDE.md "KB ses
 
 from __future__ import annotations
 
+import argparse
+import json
+import os
 import re
+import subprocess
+import sys
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -98,3 +103,92 @@ def plan_fields(note: Note, transcript_id: str | None, record: dict, now_iso: st
         return "already-linked", {}
     todo[F_SYNCED] = now_iso
     return "write", todo
+
+
+REPO = Path(__file__).resolve().parent
+RCLONE = "/opt/homebrew/bin/rclone" if Path("/opt/homebrew/bin/rclone").exists() else "rclone"
+REMOTE = os.environ.get("KB_LINKS_DRIVE_REMOTE", "rickdrive:")
+TABLE = os.environ.get("AIRTABLE_SESSIONS_TABLE", "Sessions")
+STATUSES = ["write", "already-linked", "no-row", "ambiguous", "conflict", "rclone-error"]
+
+
+def load_env() -> None:
+    from dotenv import load_dotenv
+
+    load_dotenv(REPO / ".env")
+
+
+def list_sessions(pat: str, base: str) -> list[dict]:
+    from session_sync import airtable_list_records
+
+    return airtable_list_records(pat, base, TABLE, fields=[F_TIME, F_NAME, F_KB, F_FOLDER, F_TRANSCRIPT])
+
+
+def list_folder(folder_id: str) -> list[dict]:
+    r = subprocess.run(
+        [RCLONE, "lsjson", REMOTE, "--drive-root-folder-id", folder_id, "-R", "--files-only"],
+        capture_output=True, text=True, timeout=120,
+    )
+    if r.returncode != 0:
+        raise RuntimeError(r.stderr.strip()[-200:])
+    return json.loads(r.stdout)
+
+
+def patch(pat: str, base: str, rows: list[dict]) -> None:
+    from session_sync import airtable_patch_records
+
+    for i in range(0, len(rows), 10):  # Airtable allows 10 records per request
+        airtable_patch_records(pat, base, TABLE, rows[i : i + 10])
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--apply", action="store_true", help="write to Airtable (default: dry run)")
+    ap.add_argument("--note", action="append", type=Path, help="only this note (repeatable)")
+    ap.add_argument("--days", type=int, help="only notes dated within the last N days")
+    ap.add_argument("--kb", type=Path, default=Path(os.environ.get("KB_DIR", Path.home() / "Dev" / "kb")))
+    a = ap.parse_args(argv)
+    load_env()
+    pat, base = os.environ.get("AIRTABLE_PAT", ""), os.environ.get("AIRTABLE_BASE_ID", "")
+    kb = a.kb.resolve()
+    paths = [p.resolve() for p in a.note] if a.note else sorted((kb / "coaching" / "client-notes").glob("*.md"))
+    cutoff = (date.today() - timedelta(days=a.days)).isoformat() if a.days else None
+    notes = [n for n in (parse_note(p, kb) for p in paths) if n and (not cutoff or n.date >= cutoff)]
+    try:
+        records = list_sessions(pat, base)
+    except RuntimeError as e:
+        print(f"AIRTABLE FAIL: {e}")
+        return 1
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    counts = dict.fromkeys(STATUSES, 0)
+    rows = []
+    for n in notes:
+        status, r = match_session(n, records)
+        if status != "matched":
+            counts[status] += 1
+            print(f"{status} {n.rel_path}")
+            continue
+        tid = None
+        if n.folder_id:
+            try:
+                tid = pick_transcript(list_folder(n.folder_id))
+            except (RuntimeError, subprocess.TimeoutExpired, json.JSONDecodeError) as e:
+                counts["rclone-error"] += 1
+                print(f"rclone-error {n.rel_path}: {e}")
+        status, fields = plan_fields(n, tid, r, now)
+        counts[status] += 1
+        print(f"{status} {n.rel_path} -> {r['id']}")
+        if fields:
+            rows.append({"id": r["id"], "fields": fields})
+    if a.apply and rows:
+        try:
+            patch(pat, base, rows)
+        except RuntimeError as e:
+            print(f"AIRTABLE FAIL: {e}")
+            return 1
+    print("RESULT: " + " ".join(f"{s}={counts[s]}" for s in STATUSES) + ("" if a.apply else " (dry run)"))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -116,3 +116,75 @@ def test_plan_fields_without_recording_links_note_only():
     n = k.Note("coaching/client-notes/Vic-2026-01-05.md", "2026-01-05", frozenset({"vic"}), None)
     status, fields = k.plan_fields(n, None, rec("v", "x", "Vic"), "now")
     assert status == "write" and set(fields) == {k.F_KB, k.F_SYNCED}
+
+
+def run_cli(monkeypatch, tmp_path, records, argv, lsjson=None):
+    patched = []
+    monkeypatch.setenv("AIRTABLE_PAT", "pat")
+    monkeypatch.setenv("AIRTABLE_BASE_ID", "app")
+    monkeypatch.setattr(k, "load_env", lambda: None)
+    monkeypatch.setattr(k, "list_sessions", lambda pat, base: records)
+    monkeypatch.setattr(k, "list_folder", lambda fid: lsjson if lsjson is not None else [{"Path": "transcript.md", "ID": "T"}])
+    monkeypatch.setattr(k, "patch", lambda pat, base, rows: patched.extend(rows))
+    code = k.main(["--kb", str(tmp_path), *argv])
+    return code, patched
+
+
+def test_cli_dry_run_writes_nothing(monkeypatch, tmp_path, capsys):
+    write_note(tmp_path, "Vic-2026-09-28.md", NOTE)
+    code, patched = run_cli(monkeypatch, tmp_path, [rec("v", "2026-09-28T16:30:00.000Z", "Vic Mileham")], [])
+    assert code == 0 and patched == []
+    assert "RESULT: write=1 " in capsys.readouterr().out
+
+
+def test_cli_apply_patches_matched_row(monkeypatch, tmp_path):
+    write_note(tmp_path, "Vic-2026-09-28.md", NOTE)
+    code, patched = run_cli(monkeypatch, tmp_path, [rec("v", "2026-09-28T16:30:00.000Z", "Vic Mileham")], ["--apply"])
+    assert code == 0
+    assert patched[0]["id"] == "v"
+    assert patched[0]["fields"][k.F_TRANSCRIPT] == "https://drive.google.com/file/d/T/view"
+
+
+def test_cli_no_row_exits_zero(monkeypatch, tmp_path, capsys):
+    p = write_note(tmp_path, "Vic-2026-09-28.md", NOTE)
+    code, patched = run_cli(monkeypatch, tmp_path, [], ["--apply", "--note", str(p)])
+    out = capsys.readouterr().out
+    assert code == 0 and patched == []
+    assert "no-row coaching/client-notes/Vic-2026-09-28.md" in out
+
+
+def test_cli_rclone_failure_still_links_folder(monkeypatch, tmp_path, capsys):
+    write_note(tmp_path, "Vic-2026-09-28.md", NOTE)
+
+    def boom(fid):
+        raise RuntimeError("rclone down")
+
+    monkeypatch.setenv("AIRTABLE_PAT", "pat")
+    monkeypatch.setenv("AIRTABLE_BASE_ID", "app")
+    monkeypatch.setattr(k, "load_env", lambda: None)
+    monkeypatch.setattr(k, "list_sessions", lambda pat, base: [rec("v", "2026-09-28T16:30:00.000Z", "Vic Mileham")])
+    monkeypatch.setattr(k, "list_folder", boom)
+    patched = []
+    monkeypatch.setattr(k, "patch", lambda pat, base, rows: patched.extend(rows))
+    assert k.main(["--kb", str(tmp_path), "--apply"]) == 0
+    assert k.F_FOLDER in patched[0]["fields"] and k.F_TRANSCRIPT not in patched[0]["fields"]
+    assert "rclone-error=1" in capsys.readouterr().out
+
+
+def test_cli_days_filter(monkeypatch, tmp_path, capsys):
+    write_note(tmp_path, "Vic-2020-01-01.md", NOTE.replace("2026-09-28", "2020-01-01"))
+    code, _ = run_cli(monkeypatch, tmp_path, [], ["--days", "56"])
+    assert "Vic-2020-01-01" not in capsys.readouterr().out
+
+
+def test_cli_airtable_failure_exits_one(monkeypatch, tmp_path):
+    write_note(tmp_path, "Vic-2026-09-28.md", NOTE)
+    monkeypatch.setenv("AIRTABLE_PAT", "pat")
+    monkeypatch.setenv("AIRTABLE_BASE_ID", "app")
+    monkeypatch.setattr(k, "load_env", lambda: None)
+
+    def fail(pat, base):
+        raise RuntimeError("Airtable LIST failed (401)")
+
+    monkeypatch.setattr(k, "list_sessions", fail)
+    assert k.main(["--kb", str(tmp_path)]) == 1
