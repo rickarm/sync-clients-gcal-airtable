@@ -2,6 +2,8 @@
 
 This repo contains **`sync_last_4_weeks.py`**, a safe, idempotent sync that backfills (or updates missing fields for) coaching sessions from **Google Calendar** into your **Airtable Sessions** table.
 
+> **Current entry point is `session_sync.py`**, run on a schedule by `run_sync.sh` (6am full run plus hourly today-only runs, 7:45am to 5:45pm). See "Scheduled Run (launchd)" in `CLAUDE.md` for the schedule, modes, stale check and alerts. The rest of this README describes the original `sync_last_4_weeks.py`.
+
 ## What the script does
 
 For events in the last **N weeks** (default **4**):
