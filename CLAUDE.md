@@ -26,8 +26,14 @@ See `KB-Development-Workflow.md` in the Knowledge Base for the full workflow. Su
 
 ## Scheduled Run (launchd)
 
-`com.rickarmbrust.gcal-airtable-sync` on the mini runs `run_sync.sh` **Mon 8am + Fri 2pm**
-(`session_sync.py --apply --weeks 4 --calendar-id primary`). The plist is tracked in-repo
+`com.rickarmbrust.gcal-airtable-sync` on the mini runs `run_sync.sh` **daily at 6am**
+(`session_sync.py --apply --weeks 4 --include-today --stale-file logs/stale_sessions.json`).
+`--include-today` moves the window's end from "now" to the end of today (Pacific), so the day's
+upcoming sessions get rows before they happen. Without it, only sessions that have started sync.
+Because rows can now exist before the session, every run also lists rows in the window whose
+Calendar Event ID matches no live event (canceled, or moved, since the key embeds the start time)
+in `logs/stale_sessions.json`. They are **never deleted**; rows new since the last run go to
+`stale_sessions.json.new` and `run_sync.sh` files one Things task for Rick to review. The plist is tracked in-repo
 (`com.rickarmbrust.gcal-airtable-sync.plist`) — edit it, copy to `~/Library/LaunchAgents/`,
 then `launchctl bootout`+`load -w` to change the schedule. On non-zero exit `run_sync.sh`
 fires three best-effort alerts (none alter the exit code): Alfred/Telegram, a Things "Today"
@@ -220,4 +226,4 @@ Confirm PAT is valid and has access to the base.
 
 ## KB session links (kb_links.py)
 
-Fills `KB File Path`, `Drive Folder`, `Transcript` and `Last Synced to KB At` on Sessions rows from the KB client notes (`~/Dev/kb/coaching/client-notes/<First>-YYYY-MM-DD.md`, the `**Recording:**` line). Matches on Pacific date plus the first name of `Name (from Matched Contact)` (the note's filename or `**Client:**` line). Fill-blank only: a different existing value is reported as `conflict` and left alone; it never creates rows. Callers: `/transcript` after filing (`--note`), `run_sync.sh` weekly (`--days 56`), `make link-backfill`. Transcript file preference: `transcript.md`, then any `.md`, `.txt`, `.srt`, `.vtt`. Needs rclone remote `rickdrive` (mini only); without it the folder and note still link and the run reports `rclone-error`.
+Fills `KB File Path`, `Drive Folder`, `Transcript` and `Last Synced to KB At` on Sessions rows from the KB client notes (`~/Dev/kb/coaching/client-notes/<First>-YYYY-MM-DD.md`, the `**Recording:**` line). Matches on Pacific date plus the first name of `Name (from Matched Contact)` (the note's filename or `**Client:**` line). Fill-blank only: a different existing value is reported as `conflict` and left alone; it never creates rows. Callers: `/transcript` after filing (`--note`), `run_sync.sh` daily (`--days 56`), `make link-backfill`. Transcript file preference: `transcript.md`, then any `.md`, `.txt`, `.srt`, `.vtt`. Needs rclone remote `rickdrive` (mini only); without it the folder and note still link and the run reports `rclone-error`.
