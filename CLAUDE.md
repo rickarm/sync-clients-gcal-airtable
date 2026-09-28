@@ -26,7 +26,12 @@ See `KB-Development-Workflow.md` in the Knowledge Base for the full workflow. Su
 
 ## Scheduled Run (launchd)
 
-`com.rickarmbrust.gcal-airtable-sync` on the mini runs `run_sync.sh` **daily at 6am**
+`com.rickarmbrust.gcal-airtable-sync` on the mini runs `run_sync.sh` **daily at 6am** (full run, below),
+then **hourly at :45 from 7:45am to 5:45pm** in `today` mode (`--start <today> --include-today`
+only), so a session booked after 6am gets a row within the hour, before it starts if it begins on
+the hour. `run_sync.sh` picks the mode from its first argument, else by the clock (before 7am = full).
+Today-mode runs skip the stale check, KB links and failure alerts; the next 6am run covers all three.
+The 6am full run is
 (`session_sync.py --apply --weeks 4 --include-today --stale-file logs/stale_sessions.json`).
 `--include-today` moves the window's end from "now" to the end of today (Pacific), so the day's
 upcoming sessions get rows before they happen. Without it, only sessions that have started sync.

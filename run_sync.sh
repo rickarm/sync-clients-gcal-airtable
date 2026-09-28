@@ -5,6 +5,14 @@
 # already have Sessions rows. Rows whose event was later canceled or moved are
 # listed in logs/stale_sessions.json (never deleted); new ones file a Things task.
 #
+# Two modes, picked by the first argument, or by the clock when there is none
+# (launchd passes none): before 7am = full, later = today.
+#   full   the 6am run above, plus KB links and failure alerts
+#   today  the hourly daytime runs: today only, so sessions booked after 6am get
+#          a row within the hour. No stale check (it would drop the full run's
+#          4-week list from stale_sessions.json), no KB links, and no alerts on
+#          failure (the next 6am full run alerts if the problem persists).
+#
 # Does NOT source .env via bash. python-dotenv inside session_sync.py reads it
 # directly, which handles quoting and special characters that bash's `source`
 # cannot parse (e.g. unescaped parentheses in values).
@@ -18,7 +26,23 @@ LAUNCHD_LOG="$LOG_DIR/launchd.log"
 
 exec >> "$LAUNCHD_LOG" 2>&1
 
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] run_sync.sh starting"
+MODE="${1:-}"
+if [[ -z "$MODE" ]]; then
+  if (( 10#$(date +%H) < 7 )); then MODE=full; else MODE=today; fi
+fi
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] run_sync.sh starting (mode=$MODE)"
+
+if [[ "$MODE" == "today" ]]; then
+  "$SCRIPT_DIR/.venv/bin/python" session_sync.py \
+    --apply \
+    --start "$(date +%Y-%m-%d)" \
+    --include-today \
+    --calendar-id primary
+  RC=$?
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] run_sync.sh done (mode=today, exit $RC; no alerts in this mode)"
+  exit $RC
+fi
 
 "$SCRIPT_DIR/.venv/bin/python" session_sync.py \
   --apply \
